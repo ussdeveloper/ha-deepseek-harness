@@ -4,6 +4,13 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.34
+
+- Host terminal fix: when `host_pid` hides the container id in `/proc/self/cgroup`
+  (so the Docker helper could not find its image), the image is now resolved by
+  matching the add-on container's name/`io.hass.slug` label through the Docker
+  API.
+
 ## 0.1.33
 
 - Host terminal now works even when the container cannot use `nsenter`:

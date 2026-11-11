@@ -76,11 +76,29 @@ function demuxLogs(buffer) {
   return Buffer.concat(chunks).toString('utf8')
 }
 
-/** Find this container's image id through its cgroup entry. */
+/** Find this container's image id through its cgroup entry or Docker labels. */
 async function ownImageId(socketPath) {
   try {
-    const cgroup = await readFile('/proc/self/cgroup', 'utf8')
-    const id = /[0-9a-f]{64}/.exec(cgroup)?.[0]
+    let id
+    try {
+      const cgroup = await readFile('/proc/self/cgroup', 'utf8')
+      id = /[0-9a-f]{64}/.exec(cgroup)?.[0]
+    } catch {
+      // host_pid hides the container id in some setups; fall back to labels.
+    }
+    if (id === undefined) {
+      const list = await dockerRequest(socketPath, 'GET', '/containers/json?all=1')
+      if (list.status === 200) {
+        const containers = JSON.parse(list.body.toString('utf8'))
+        const match = containers.find((container) => {
+          const names = Array.isArray(container.Names) ? container.Names.join(' ') : ''
+          const labels = container.Labels ?? {}
+          const slug = String(labels['io.hass.slug'] ?? '')
+          return /deepseek[_-]?harness/i.test(names) || /deepseek[_-]?harness/i.test(slug)
+        })
+        id = match?.Id
+      }
+    }
     if (id === undefined) return undefined
     const inspect = await dockerRequest(socketPath, 'GET', `/containers/${id}/json`)
     if (inspect.status !== 200) return undefined
