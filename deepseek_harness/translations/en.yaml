@@ -26,6 +26,13 @@ configuration:
   monitor_enabled:
     name: "Enable monitoring"
     description: "Periodic health checks, backup-age checks and the daily digest."
+  first_run_analysis:
+    name: "First-run system analysis"
+    description: >-
+      On the first start with an API key configured, run one read-only
+      assessment of Home Assistant, its apps and backups, write a report to
+      /config/deepseek-harness and open that session by default. Costs one
+      model conversation; the deterministic inventory report is always written.
   notify_service:
     name: "Notification service"
     description: >-
@@ -44,4 +51,5 @@ configuration:
     description: >-
       Optional. Set if you access Home Assistant through a fixed external URL
       (e.g. Nabu Casa); used only for links the agent generates.
+
 

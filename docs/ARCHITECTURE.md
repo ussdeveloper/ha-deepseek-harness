@@ -50,6 +50,7 @@ against Home Assistant Supervisor and DSH 0.2.2-rc.1 behaviour.
 | Skills | `.../skills/*/SKILL.md` | Playbooks: config, diagnostics, monitoring, add-on building |
 | Safety prompt | `/data/dsh-home/AGENTS.md` (restored from `/opt/ha-dsh/prompts/AGENTS.md`) | Always-present, non-negotiable stability/security rules |
 | Memory collector | `/opt/ha-dsh/collector.mjs` (background) | Builds `/data/memory/state.json` from read-only API calls; detects anomalies; notifies |
+| First-run recognition | `/opt/ha-dsh/runtime/first-run.mjs` (once) | Deterministic inventory report; optional read-only `dsh headless` assessment whose session opens by default |
 | Config safety layer | plugin module | Snapshot, atomic write, YAML validation, `check_config`, rollback |
 | Backups | Supervisor `/backups` | Scheduled + pre-risk backups, verification, retention |
 | Monitoring | collector + `notify` service | Probe, score, dedupe, digest, quiet hours |
@@ -63,22 +64,34 @@ against Home Assistant Supervisor and DSH 0.2.2-rc.1 behaviour.
    `/config/deepseek-harness`, `/data/memory`, `/data/backups/config`; set ownership.
 4. Restore managed files that must not drift (safety `AGENTS.md`, managed profile
    rows) when their hash differs from the image copy.
-5. Start `collector.mjs` (detached) — it waits for Supervisor, collects state,
+5. Start the ingress shim immediately (it answers 502 until DSH is up) so the
+   Supervisor watchdog and the panel stay reachable during a slow first boot.
+6. Run the one-time first-run recognition (marker `/data/first-run.json`):
+   deterministic inventory → `FIRST-RUN.md`; with credentials, one read-only
+   `dsh headless` assessment → persisted session id in
+   `/data/runtime/default-session.json` and `FIRST-RUN-REPORT.md`.
+7. Start `dsh web` (it prints the launch token; the entrypoint writes it for the
+   shim) and the background collector.
+8. Start `collector.mjs` — it waits for Supervisor, collects state,
    writes memory, schedules probes/digest.
-6. `exec` DSH web bound to the container interface on the ingress port, with
-   `--public-url` / trusted-host flags per PENDING RESEARCH.
-7. Supervisor ingress proxies the sidebar panel to port 8099.
+9. `exec` DSH web bound to loopback on port 3080.
+10. Supervisor ingress proxies the sidebar panel to port 8099; the shim injects
+    `dsh.sessions.current` on the first document load when a first-run session
+    exists, so the UI opens that session.
 
 ## 4. Data layout (`/data`)
 
 ```
 /data
 ├── options.json              HA add-on options (managed by Supervisor)
+├── first-run.json            first-run marker (deterministic/LLM done, attempts)
+├── runtime/
+│   ├── dsh-token              captured DSH launch token (shim only)
+│   └── default-session.json   first-run session id opened by default in the UI
 ├── dsh-home/                 DSH_HOME (profiles, sessions DB, settings, AGENTS.md)
-│   ├── AGENTS.md             managed safety prompt (restored from image)
-│   ├── profiles/ha/          our profile: bundle list + patch config
+│   ├── AGENTS.md             managed operating context (restored from image)
+│   ├── profiles/web/         auto-initialised shipped web profile
 │   └── sessions/             session history (survives restarts)
-├── workspace/                (unused; the agent workspace lives in /config)
 ├── memory/
 │   ├── state.json            deterministic system snapshot (collector)
 │   ├── notes.md              agent-curated long-term memory
@@ -90,11 +103,11 @@ against Home Assistant Supervisor and DSH 0.2.2-rc.1 behaviour.
 
 `/config` (HA configuration) and `/addons` (local add-ons) are mounted
 read-write and included in `sandbox-policy.additionalWritableRoots`. The agent's
-workspace is **`/config/deepseek-harness`**, so scratch files and reports sit
-next to the configuration the agent edits and are covered by Home Assistant's own
-backups. File edits to `/config` still go through the plugin's safe-write tool;
-the agent is instructed never to hand-edit service-critical files without
-snapshot + validation.
+workspace is **`/config/deepseek-harness`**, so scratch files and reports
+(`FIRST-RUN.md`, `FIRST-RUN-REPORT.md`) sit next to the configuration the agent
+edits and are covered by Home Assistant's own backups. File edits to `/config`
+still go through the plugin's safe-write tool; the agent is instructed never to
+hand-edit service-critical files without snapshot + validation.
 
 ## 5. DSH integration (verified against 0.2.2-rc.1)
 

@@ -22,6 +22,8 @@
    - `read_only` — start here if you only want advice and monitoring
    - `allow_restarts`, `allow_addon_management` — off by default
    - `monitor_enabled` — health checks, digest and backup-age alerts
+   - `first_run_analysis` — one read-only model assessment on the first start
+     (deterministic inventory report is always written)
    - `notify_service` — e.g. `notify.mobile_app_your_phone`
    - `backup_retention`, `quiet_hours`, `public_url` — optional
 5. **Start** the add-on, then click **Open Web UI** (or the sidebar entry).
@@ -113,4 +115,5 @@ first.
   isolation, no privileged flags and no host access.
 - Some diagnostics rely on undocumented WebSocket commands and degrade to
   `UNSUPPORTED` on incompatible HA versions.
+
 

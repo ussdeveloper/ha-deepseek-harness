@@ -4,6 +4,46 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.6
+
+- First-run recognition: on the first start the add-on deterministically
+  collects the inventory (Core/Supervisor/OS versions, host, integrations,
+  entities, automations, apps, updates, backups, config files) and writes
+  `FIRST-RUN.md` into the workspace (`/config/deepseek-harness`), without any
+  model calls.
+- When an API key is configured (add-on option or DSH UI credentials), one
+  read-only `dsh headless` assessment runs before the UI starts, writes
+  `FIRST-RUN-REPORT.md`, and its persisted session is opened by default in the
+  Web UI (seeded through `dsh.sessions.current`, only when the browser has no
+  saved selection).
+- The ingress shim starts before the first-run analysis, so the Supervisor
+  watchdog and panel stay reachable during the one-time boot extension.
+- New option `first_run_analysis` (default on) lets users skip the model
+  assessment; the deterministic report is always written.
+- The first-run marker lives in `/data/first-run.json`; failures are retried at
+  most three times and never block the add-on.
+
+## 0.1.5
+
+- Default agent workspace moved from `/data/workspace` to
+  **`/config/deepseek-harness`**: files the agent creates are visible in the Home
+  Assistant configuration folder and are included in Home Assistant's backups.
+  The entrypoint creates the directory and DSH runs with it as its working
+  directory; the sandbox workspace root points there as well.
+- Docker image no longer creates or uses `/data/workspace`.
+
+## 0.1.4
+
+- Fix: plugin bundle URLs are also repaired in the form Home Assistant actually
+  forwards (`plugins/??<id>/client.js=&rev=…` — an empty-value `=` injected by
+  the proxy chain). With 0.1.2 only the percent-encoded variant was handled, so
+  the UI still failed to load client plugins.
+
+## 0.1.3
+
+- Diagnostics build: the ingress shim can echo the URL it received under the
+  `x-dsh-debug: 1` header (removed again in 0.1.4).
+
 ## 0.1.2
 
 - Fix: DSH client plugin bundles now load through Home Assistant ingress. HA
@@ -35,5 +75,3 @@ file's top version changes.
 - Local knowledge cache for Home Assistant releases/breaking changes (fetched
   locally, no model tokens).
 - Add-on builder: scaffold, validate, build and debug local apps in `/addons`.
-
-

@@ -39,10 +39,14 @@ export function getPaths() {
     monitor: join(data, 'monitor'),
     knowledge: join(data, 'knowledge'),
     configBackups: join(data, 'config-backups'),
-    workspace: join(data, 'workspace'),
+    // DSH's persistent home: profiles, session store, settings and managed
+    // instruction files. It stays in /data, which add-on backups cover.
     dshHome: process.env.DSH_HOME ?? join(data, 'dsh-home'),
     configDir: process.env.DSH_HA_CONFIG_DIR ?? '/config',
     addonsDir: process.env.DSH_HA_ADDONS_DIR ?? '/addons',
+    // The agent's workspace lives inside the Home Assistant config folder so
+    // the user can see its files and HA backups include them.
+    workspace: process.env.DSH_WORKSPACE ?? '/config/deepseek-harness',
     supervisorUrl: (process.env.DSH_SUPERVISOR_URL ?? 'http://supervisor').replace(/\/+$/, ''),
   }
 }
@@ -54,6 +58,7 @@ export function getPaths() {
  *   monitorEnabled: boolean, notifyService: string, quietHours: string,
  *   backupRetention: number, publicUrl: string, webPort: number,
  *   ingressPort: number, monitorIntervalMin: number, digestTime: string,
+ *   firstRunAnalysis: boolean,
  * }}
  */
 export function getOptions() {
@@ -62,6 +67,7 @@ export function getOptions() {
     allowRestarts: parseBool(process.env.DSH_OPT_ALLOW_RESTARTS, false),
     allowAddonManagement: parseBool(process.env.DSH_OPT_ALLOW_ADDON_MANAGEMENT, false),
     monitorEnabled: parseBool(process.env.DSH_OPT_MONITOR_ENABLED, true),
+    firstRunAnalysis: parseBool(process.env.DSH_OPT_FIRST_RUN_ANALYSIS, true),
     notifyService: process.env.DSH_OPT_NOTIFY_SERVICE ?? '',
     quietHours: process.env.DSH_OPT_QUIET_HOURS ?? '',
     backupRetention: parseInt(process.env.DSH_OPT_BACKUP_RETENTION, 7),

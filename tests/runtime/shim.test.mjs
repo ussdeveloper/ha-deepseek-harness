@@ -125,6 +125,16 @@ test('normalizePluginBundleUrl restores multi-entry bundle keys', () => {
   )
 })
 
+test('injectDefaultSession seeds the saved session only once per browser', () => {
+  const html = '<html><head></head><body>app</body></html>'
+  const injected = shim.injectDefaultSession(html, 'session-1')
+  assert.match(injected, /dsh\.sessions\.current/)
+  assert.match(injected, /\\"sessionId\\":\\"session-1\\"/)
+  assert.match(injected, /if\(!localStorage\.getItem\(key\)\)/)
+  assert.ok(injected.indexOf('dsh.sessions.current') < injected.indexOf('</head>'))
+  assert.equal(shim.injectDefaultSession(html, ''), html)
+})
+
 test('normalizePluginBundleUrl strips the injected empty-value equals sign', () => {
   // Home Assistant keeps the bare `??` form but serialises the empty value of
   // the ids parameter, producing `...client.js=&rev=...`.

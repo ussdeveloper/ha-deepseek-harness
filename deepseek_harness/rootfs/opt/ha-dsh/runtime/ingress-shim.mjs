@@ -31,6 +31,40 @@ const INGRESS_PORT = Number.parseInt(process.env.DSH_INGRESS_PORT ?? '8099', 10)
 const BIND = process.env.DSH_INGRESS_BIND ?? '0.0.0.0'
 const TOKEN_FILE = process.env.DSH_TOKEN_FILE ?? '/data/runtime/dsh-token'
 const TRUSTED_AUTHORITY = 'dsh.local'
+const DEFAULT_SESSION_FILE = process.env.DSH_DEFAULT_SESSION_FILE ?? '/data/runtime/default-session.json'
+
+/**
+ * Inject the saved first-run session into the browser before the app boots.
+ *
+ * DSH persists the active session selection in `localStorage` under
+ * `dsh.sessions.current`. Setting it only when the browser has no selection
+ * makes the first-run analysis session the default view without overriding a
+ * user's later choice.
+ * @param {string} html
+ * @param {string} sessionId
+ * @returns {string}
+ */
+export function injectDefaultSession(html, sessionId) {
+  if (typeof sessionId !== 'string' || sessionId === '') return html
+  const value = JSON.stringify(JSON.stringify({ sessionId }))
+  const script = `<script>(function(){try{var key="dsh.sessions.current";if(!localStorage.getItem(key)){localStorage.setItem(key,${value})}}catch(error){}})()</script>`
+  return html.includes('</head>') ? html.replace('</head>', `${script}</head>`) : `${script}${html}`
+}
+
+let defaultSessionCache = { value: undefined, readAt: 0 }
+
+/** Read the first-run session id written by `first-run.mjs`; cached for a second. */
+async function defaultSessionId() {
+  if (Date.now() - defaultSessionCache.readAt < 1_000) return defaultSessionCache.value
+  defaultSessionCache.readAt = Date.now()
+  try {
+    const parsed = JSON.parse(await readFile(DEFAULT_SESSION_FILE, 'utf8'))
+    defaultSessionCache.value = typeof parsed?.sessionId === 'string' ? parsed.sessionId : undefined
+  } catch {
+    defaultSessionCache.value = undefined
+  }
+  return defaultSessionCache.value
+}
 
 /** Networks allowed to talk to the ingress port (Supervisor + loopback). */
 const ALLOWED = [
@@ -212,6 +246,7 @@ async function proxyRequest(req, res) {
   }
 
   const secure = req.headers['x-forwarded-proto'] === 'https'
+  const documentRequest = isDocumentRequest(req.method ?? 'GET', target)
   const upstream = httpRequest(
     {
       host: WEB_HOST,
@@ -227,6 +262,28 @@ async function proxyRequest(req, res) {
       if (cookies !== undefined) {
         headers['set-cookie'] = cookies.map((cookie) => rewriteSetCookie(cookie, prefix, secure))
       }
+
+      const contentType = String(upstreamRes.headers['content-type'] ?? '')
+      if (documentRequest && (upstreamRes.statusCode ?? 0) === 200 && contentType.includes('text/html')) {
+        // The document is small; buffer it so the default-session script can be
+        // injected and the content length corrected.
+        const chunks = []
+        upstreamRes.on('data', (chunk) => chunks.push(chunk))
+        upstreamRes.on('end', () => {
+          void (async () => {
+            const sessionId = await defaultSessionId()
+            let body = Buffer.concat(chunks).toString('utf8')
+            if (sessionId !== undefined) body = injectDefaultSession(body, sessionId)
+            const encoded = Buffer.from(body, 'utf8')
+            delete headers['content-length']
+            headers['content-length'] = String(encoded.byteLength)
+            res.writeHead(upstreamRes.statusCode ?? 200, headers)
+            res.end(encoded)
+          })()
+        })
+        return
+      }
+
       res.writeHead(upstreamRes.statusCode ?? 502, headers)
       upstreamRes.pipe(res)
     },

@@ -46,6 +46,7 @@ you build new apps (add-ons) — always with stability and safety first.
 | `allow_restarts` | `false` | Allow Home Assistant restarts after confirmation |
 | `allow_addon_management` | `false` | Allow app install/update/rebuild/uninstall after confirmation |
 | `monitor_enabled` | `true` | Health checks, digest, backup-age alerts |
+| `first_run_analysis` | `true` | One read-only model assessment on the first start (the deterministic report is always written) |
 | `notify_service` | — | e.g. `notify.mobile_app_phone`; empty = persistent notifications |
 | `backup_retention` | `7` | Automatic backups to keep (1–90) |
 | `quiet_hours` | — | `HH:MM-HH:MM` window for non-critical notifications |
@@ -87,3 +88,4 @@ mode); backups contain your API key, so treat them as secrets.
 - **401/403 from the model API**: set the API key in the app's model settings.
 - **A tool is missing**: it is disabled by an option or by read-only mode; check
   the add-on log for `[ha-deepseek-harness] registered N tools`.
+

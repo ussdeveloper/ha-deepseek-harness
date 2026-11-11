@@ -83,6 +83,8 @@ for (const file of [
   'deepseek_harness/rootfs/opt/ha-dsh/runtime/entrypoint.mjs',
   'deepseek_harness/rootfs/opt/ha-dsh/runtime/ingress-shim.mjs',
   'deepseek_harness/rootfs/opt/ha-dsh/runtime/collector.mjs',
+  'deepseek_harness/rootfs/opt/ha-dsh/runtime/first-run.mjs',
+  'deepseek_harness/rootfs/opt/ha-dsh/runtime/first-run.mjs',
   'deepseek_harness/rootfs/opt/ha-dsh/prompts/AGENTS.md',
 ]) {
   await requireFile(file)
@@ -175,6 +177,8 @@ for (const file of [
   'deepseek_harness/rootfs/opt/ha-dsh/runtime/entrypoint.mjs',
   'deepseek_harness/rootfs/opt/ha-dsh/runtime/ingress-shim.mjs',
   'deepseek_harness/rootfs/opt/ha-dsh/runtime/collector.mjs',
+  'deepseek_harness/rootfs/opt/ha-dsh/runtime/first-run.mjs',
+  'deepseek_harness/rootfs/opt/ha-dsh/runtime/first-run.mjs',
 ]) {
   const text = await readFile(join(ROOT, file), 'utf8')
   if (/\bSUPERVISOR_TOKEN\s*=\s*['"]/.test(text)) error(`${file}: looks like a hardcoded Supervisor token`)
@@ -192,5 +196,6 @@ if (errors.length > 0) {
 }
 
 console.log('\nAdd-on repository is valid.')
+
 
 

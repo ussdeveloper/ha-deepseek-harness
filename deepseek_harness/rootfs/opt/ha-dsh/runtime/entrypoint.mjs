@@ -20,6 +20,9 @@ import { copyFile, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { runFirstRun } from './first-run.mjs'
+import { VERSION } from '../lib/paths.js'
+
 const OPTIONS_PATH = '/data/options.json'
 const RUNTIME_DIR = '/data/runtime'
 const TOKEN_FILE = join(RUNTIME_DIR, 'dsh-token')
@@ -61,6 +64,7 @@ function exportOptions(options) {
     ['allow_restarts', 'DSH_OPT_ALLOW_RESTARTS'],
     ['allow_addon_management', 'DSH_OPT_ALLOW_ADDON_MANAGEMENT'],
     ['monitor_enabled', 'DSH_OPT_MONITOR_ENABLED'],
+    ['first_run_analysis', 'DSH_OPT_FIRST_RUN_ANALYSIS'],
     ['notify_service', 'DSH_OPT_NOTIFY_SERVICE'],
     ['backup_retention', 'DSH_OPT_BACKUP_RETENTION'],
     ['quiet_hours', 'DSH_OPT_QUIET_HOURS'],
@@ -255,6 +259,28 @@ async function main() {
   const logStream = createWriteStream(LOG_FILE, { flags: 'a', mode: 0o600 })
   logStream.on('error', (error) => log('WARN', `log file unavailable: ${error.message}`))
 
+  // The shim listens immediately so the Supervisor watchdog and ingress are
+  // reachable while the first-run recognition runs; it answers 502 until DSH
+  // is up. This keeps a slow first boot from looking like a failed start.
+  const shim = startChild('shim', process.execPath, [SHIM], {
+    env: {
+      DSH_WEB_PORT: String(WEB_PORT),
+      DSH_INGRESS_PORT: String(INGRESS_PORT),
+      DSH_TOKEN_FILE: TOKEN_FILE,
+      DSH_DEFAULT_SESSION_FILE: join(RUNTIME_DIR, 'default-session.json'),
+    },
+  })
+  children.set('shim', shim)
+
+  // One-time system recognition before the UI starts. It is deterministic and
+  // always writes a report; when an LLM key is configured it also creates the
+  // persisted first-run analysis session the UI opens by default.
+  try {
+    await runFirstRun()
+  } catch (error) {
+    log('WARN', `first-run recognition failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+
   const web = startChild(
     'dsh',
     'dsh',
@@ -276,7 +302,7 @@ async function main() {
       env: {
         DSH_HOME,
         DSH_WEB_PORT: String(WEB_PORT),
-        DSH_ADDON_VERSION: process.env.DSH_ADDON_VERSION ?? '0.1.0',
+        DSH_ADDON_VERSION: VERSION,
         HOME: '/data',
       },
       onLine: (line) => {
@@ -286,15 +312,6 @@ async function main() {
     },
   )
   children.set('dsh', web)
-
-  const shim = startChild('shim', process.execPath, [SHIM], {
-    env: {
-      DSH_WEB_PORT: String(WEB_PORT),
-      DSH_INGRESS_PORT: String(INGRESS_PORT),
-      DSH_TOKEN_FILE: TOKEN_FILE,
-    },
-  })
-  children.set('shim', shim)
 
   const collector = startChild('collector', process.execPath, [COLLECTOR], {
     env: { DSH_HOME },
@@ -360,4 +377,5 @@ if (!existsSync('/opt/ha-dsh')) {
 }
 
 await main()
+
 
