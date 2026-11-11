@@ -113,10 +113,21 @@ export function extractApiKeyFromConfiguration(text) {
   let blockIndent = 0
   for (const line of lines) {
     if (!inBlock) {
-      if (/^deepseek_harness:\s*(?:#.*)?$/.test(line)) {
-        inBlock = true
-        blockIndent = 0
+      // Accept deepseek_harness, deepseek-harness and deepseekharness; users
+      // write the block by hand and the underscore-less form is common.
+      const block = /^(deepseek[_-]?harness)\s*:\s*(.*)$/.exec(line)
+      if (block === null) continue
+      const inline = block[2].trim()
+      if (inline !== '' && !inline.startsWith('#')) {
+        const inlineKey = /(?:api[_-]?key|token|key)\s*:\s*([^,}]+)/i.exec(inline)
+        if (inlineKey !== null) {
+          const value = inlineKey[1].trim().replace(/^["']|["',]$/g, '')
+          if (value !== '' && !/^(null|~)$/i.test(value)) return value
+        }
+        continue
       }
+      inBlock = true
+      blockIndent = 0
       continue
     }
     if (line.trim() === '' || /^\s*#/.test(line)) continue
@@ -124,7 +135,7 @@ export function extractApiKeyFromConfiguration(text) {
     if (indent === 0) break
     if (blockIndent === 0) blockIndent = indent
     if (indent < blockIndent) break
-    const match = /^\s*(?:api[_-]?key|deepseek_api_key|token)\s*:\s*(.+?)\s*$/.exec(line)
+    const match = /^\s*(?:api[_-]?key|deepseek_api_key|token|key)\s*:\s*(.+?)\s*$/.exec(line)
     if (match !== null) {
       const value = match[1].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '')
       if (value !== '' && !/^(null|~)$/i.test(value)) return value
