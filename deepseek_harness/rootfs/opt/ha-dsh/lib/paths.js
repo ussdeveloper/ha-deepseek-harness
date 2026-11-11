@@ -68,6 +68,7 @@ export function getOptions() {
     allowRestarts: parseBool(process.env.DSH_OPT_ALLOW_RESTARTS, false),
     allowAddonManagement: parseBool(process.env.DSH_OPT_ALLOW_ADDON_MANAGEMENT, false),
     allowHostManagement: parseBool(process.env.DSH_OPT_ALLOW_HOST_MANAGEMENT, true),
+    protectionMode: parseBool(process.env.DSH_OPT_PROTECTION_MODE, false),
     monitorEnabled: parseBool(process.env.DSH_OPT_MONITOR_ENABLED, true),
     firstRunAnalysis: parseBool(process.env.DSH_OPT_FIRST_RUN_ANALYSIS, true),
     notifyService: process.env.DSH_OPT_NOTIFY_SERVICE ?? '',

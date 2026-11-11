@@ -4,6 +4,22 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.31
+
+- **Host-level access.** The add-on now runs with `hassio_role: admin`,
+  `docker_api: true`, `host_pid: true` and `full_access: true`, and disables its
+  own protection mode by default (option `protection_mode: false`, applied
+  through `POST /addons/self/security`; the Supervisor restarts the app once to
+  apply the grants). This gives the agent the host namespace: every host file,
+  systemd, Docker and other apps' data.
+- New tool `sup_host_exec` runs a shell command in the host namespace via
+  `nsenter` (confirmation token required, output bounded, timeout enforced).
+- The system prompt states the host capabilities and the safety expectations;
+  the start log reports `hostRoot`, `dockerSocket` and `nsenter` availability.
+- Warning: this is a privileged app. Home Assistant's security rating drops, and
+  the agent must be treated as root on the host; destructive actions still use
+  the confirmation-token flow.
+
 ## 0.1.30
 
 - The operating-context prompt now mandates an orientation step at the start of
@@ -256,6 +272,7 @@ file's top version changes.
 - Local knowledge cache for Home Assistant releases/breaking changes (fetched
   locally, no model tokens).
 - Add-on builder: scaffold, validate, build and debug local apps in `/addons`.
+
 
 
 

@@ -1,5 +1,5 @@
 name: "DeepSeek Harness"
-version: "0.1.30"
+version: "0.1.31"
 slug: "deepseek_harness"
 description: "DeepSeek Harness agent for Home Assistant: configure, monitor, maintain and extend your smart home safely."
 url: "https://github.com/ussdeveloper/ha-deepseek-harness"
@@ -22,9 +22,14 @@ panel_admin: true
 
 # Supervisor + Home Assistant API access for the agent.
 hassio_api: true
-hassio_role: manager
+hassio_role: admin
 homeassistant_api: true
-# Deliberately NOT enabled: docker_api, host_network, privileged, host_pid.
+# Host-level access: the agent is explicitly meant to operate the HA OS host and
+# other apps. These grants become effective once protection mode is off; the
+# add-on disables its own protection mode by default at startup.
+docker_api: true
+host_pid: true
+full_access: true
 
 # Files the agent may use: the HA configuration (read/write) and the local
 # add-ons folder (read/write, for the add-on builder). Read-only: share, ssl.
@@ -47,6 +52,7 @@ options:
   allow_restarts: false
   allow_addon_management: false
   allow_host_management: true
+  protection_mode: false
   monitor_enabled: true
   first_run_analysis: true
   notify_service: ""
@@ -62,6 +68,7 @@ schema:
   allow_restarts: "bool"
   allow_addon_management: "bool"
   allow_host_management: "bool"
+  protection_mode: "bool"
   monitor_enabled: "bool"
   first_run_analysis: "bool"
   notify_service: "str?"
@@ -79,6 +86,7 @@ backup_exclude:
   - "*.log"
   - "tmp/*"
 timeout: 30
+
 
 
 

@@ -13,6 +13,7 @@
  * @module tools/host
  */
 
+import { spawn } from 'node:child_process'
 import { sup, supOk } from '../../lib/supervisor.js'
 import { consumeApproval, needsApproval } from '../../lib/safety.js'
 import { ok, fail, toErrorResult, renderJson, truncate } from '../../lib/result.js'
@@ -238,6 +239,87 @@ export const tools = [
       } catch (error) {
         return toErrorResult(error, ['POST /os/update'])
       }
+    },
+  },
+  {
+    name: 'sup_host_exec',
+    description:
+      'Run a shell command in the HOME ASSISTANT OS HOST namespace (nsenter via host_pid). Full host terminal: root filesystem, systemd, Docker, other apps. Destructive: requires allow_host_management and a confirmation token; output is bounded.',
+    parameters: {
+      type: 'object',
+      properties: {
+        command: { type: 'string', description: 'Shell command to run on the host (sh -lc)' },
+        timeout_s: { type: 'number', description: 'Timeout in seconds (default 60, max 600)' },
+        confirmation_token: { type: 'string' },
+      },
+      required: ['command'],
+      additionalProperties: false,
+    },
+    output,
+    xClass: 'DES',
+    async execute(args) {
+      if (!canManageHost()) {
+        return fail('FORBIDDEN', 'Host management is disabled by the add-on options.', {
+          hint: 'Ask the user to enable allow_host_management in the add-on configuration.',
+        })
+      }
+      const command = typeof args?.command === 'string' ? args.command.trim() : ''
+      if (command === '') return fail('INVALID_ARGUMENT', 'command is required.')
+      const timeoutSeconds = Math.max(1, Math.min(600, Number.isFinite(Number(args?.timeout_s)) ? Math.trunc(Number(args.timeout_s)) : 60))
+      if (typeof args?.confirmation_token !== 'string') {
+        return needsApproval('sup_host_exec', args ?? {}, {
+          action: 'Run a shell command in the Home Assistant host namespace',
+          impact: `Command runs as root on the host: it can read/write every host file, control Docker, other apps and systemd. Output: ${truncate(command, 200).text}`,
+          rollback: 'None automatic; the command may change or delete host data.',
+          backup: { available: false, suggestion: 'Create a full backup before host-level changes.' },
+          facts: { command: truncate(command, 500).text, timeout_s: timeoutSeconds },
+        })
+      }
+      try {
+        consumeApproval('sup_host_exec', args ?? {})
+      } catch (error) {
+        return toErrorResult(error, [])
+      }
+      return await new Promise((resolve) => {
+        const child = spawn('nsenter', ['-t', '1', '-m', '-u', '-i', '-n', '-p', '--', 'sh', '-lc', command], {
+          cwd: '/',
+          env: process.env,
+          stdio: ['ignore', 'pipe', 'pipe'],
+        })
+        let stdout = ''
+        let stderr = ''
+        let truncated = false
+        const collect = (chunk, current, limit) => {
+          const next = current + chunk.toString('utf8')
+          if (next.length > limit) {
+            truncated = true
+            return next.slice(0, limit)
+          }
+          return next
+        }
+        child.stdout.on('data', (chunk) => { stdout = collect(chunk, stdout, 60_000) })
+        child.stderr.on('data', (chunk) => { stderr = collect(chunk, stderr, 20_000) })
+        const timer = setTimeout(() => {
+          child.kill('SIGTERM')
+          setTimeout(() => child.kill('SIGKILL'), 2_000)
+        }, timeoutSeconds * 1_000)
+        child.on('error', (error) => {
+          clearTimeout(timer)
+          resolve(fail('UNSUPPORTED', `Cannot start host shell: ${error.message}`, {
+            hint: 'host_pid/full_access are only granted when protection mode is off. Restart the add-on after toggling protection mode.',
+          }))
+        })
+        child.on('close', (code, signal) => {
+          clearTimeout(timer)
+          resolve(
+            ok(
+              code === 0 ? 'Host command finished.' : `Host command exited with code ${code ?? 'null'}${signal ? ` (${signal})` : ''}.`,
+              { command, exit_code: code, signal, stdout, stderr, via: 'nsenter -t 1' },
+              { source: ['nsenter -t 1 -m -u -i -n -p'], truncated },
+            ),
+          )
+        })
+      })
     },
   },
 ]

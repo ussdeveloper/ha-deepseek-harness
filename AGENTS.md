@@ -72,3 +72,4 @@ scripts/monitor-addon.mjs       Supervisor install/update monitor
 tests/                          offline test suites
 docs/                           requirements, architecture, security, memory, research
 ```
+

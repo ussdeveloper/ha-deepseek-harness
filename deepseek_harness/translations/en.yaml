@@ -34,8 +34,15 @@ configuration:
     name: "Allow host management"
     description: >-
       Allows host reboot/shutdown, OS updates and reading host logs/network
-      through the Supervisor (manager role). Destructive host actions still
+      through the Supervisor (admin role). Destructive host actions still
       require explicit confirmation tokens. On by default.
+  protection_mode:
+    name: "Protection mode"
+    description: >-
+      Off by default: the add-on disables its own protection mode at startup so
+      the container receives docker_api, host_pid and full_access. This is what
+      gives the agent host-terminal and host-file access; Home Assistant warns
+      that this is a privileged app.
   monitor_enabled:
     name: "Enable monitoring"
     description: "Periodic health checks, backup-age checks and the daily digest."

@@ -14,7 +14,7 @@
  * @module entrypoint
  */
 
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { appendFile, copyFile, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -106,6 +106,7 @@ function exportOptions(options) {
     ['allow_restarts', 'DSH_OPT_ALLOW_RESTARTS'],
     ['allow_addon_management', 'DSH_OPT_ALLOW_ADDON_MANAGEMENT'],
     ['allow_host_management', 'DSH_OPT_ALLOW_HOST_MANAGEMENT'],
+    ['protection_mode', 'DSH_OPT_PROTECTION_MODE'],
     ['monitor_enabled', 'DSH_OPT_MONITOR_ENABLED'],
     ['first_run_analysis', 'DSH_OPT_FIRST_RUN_ANALYSIS'],
     ['notify_service', 'DSH_OPT_NOTIFY_SERVICE'],
@@ -242,6 +243,69 @@ async function ensureIngressPanel() {
   } catch (error) {
     log('WARN', `sidebar panel check failed: ${error instanceof Error ? error.message : String(error)}`)
   }
+}
+
+/**
+ * Enforce the requested protection-mode state through the Supervisor API.
+ *
+ * The add-on has the admin role, so it can toggle its own protection mode. The
+ * default (option `protection_mode: false`) disables protection; the Supervisor
+ * restarts the app so the container receives `docker_api`, `host_pid` and
+ * `full_access`. A short-lived marker prevents a restart loop if the toggle is
+ * refused or ignored.
+ */
+async function ensureProtectionMode(options) {
+  const token = process.env.SUPERVISOR_TOKEN
+  if (typeof token !== 'string' || token === '') return
+  const desired = options.protection_mode === true
+  const marker = '/data/.protection-toggle'
+  try {
+    const infoResponse = await fetch('http://supervisor/addons/self/info', {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    if (!infoResponse.ok) return
+    const info = await infoResponse.json()
+    if (info.protected === desired) {
+      log('INFO', `protection mode: ${desired ? 'on' : 'off'}`)
+      return
+    }
+    const lastAttempt = existsSync(marker) ? (await readFile(marker, 'utf8')).trim() : ''
+    if (lastAttempt !== '') {
+      const attemptedAt = Date.parse(lastAttempt)
+      if (Number.isFinite(attemptedAt) && Date.now() - attemptedAt < 5 * 60_000) {
+        log('WARN', `protection mode is still ${info.protected ? 'on' : 'off'}; skipping repeated toggle`)
+        return
+      }
+    }
+    await writeFile(marker, new Date().toISOString(), { mode: 0o600 })
+    const update = await fetch('http://supervisor/addons/self/security', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ protected: desired }),
+    })
+    log(
+      update.ok
+        ? `INFO protection mode changed to ${desired ? 'on' : 'off'}; the Supervisor will restart the add-on to apply host grants`
+        : `WARN could not change protection mode (HTTP ${update.status})`,
+    )
+    await new Promise((resolve) => setTimeout(resolve, 3_000))
+  } catch (error) {
+    log('WARN', `protection mode check failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+/** Log whether host-level access is actually available after the grants apply. */
+function logHostAccess() {
+  const hostRoot = existsSync('/proc/1/root')
+  const dockerSocket = ['/run/docker.sock', '/var/run/docker.sock'].find((path) => existsSync(path)) ?? 'none'
+  let nsenter = 'missing'
+  try {
+    const result = spawnSync('nsenter', ['-t', '1', '-m', '--', 'true'], { timeout: 3_000, stdio: 'ignore' })
+    nsenter = result.status === 0 ? 'ok' : `exit ${result.status ?? 'error'}`
+  } catch {
+    nsenter = 'error'
+  }
+  log(`host access: hostRoot=${hostRoot ? 'ok' : 'no'} dockerSocket=${dockerSocket} nsenter=${nsenter}`)
 }
 
 /** Create the persistent directory layout. */
@@ -404,7 +468,9 @@ async function main() {
   exportOptions(options)
   await ensureDirectories()
   await applyConfigurationApiKey()
+  await ensureProtectionMode(options)
   await ensureIngressPanel()
+  logHostAccess()
 
   await restoreManaged(MANAGED_AGENTS, join(DSH_HOME, 'AGENTS.md'))
 

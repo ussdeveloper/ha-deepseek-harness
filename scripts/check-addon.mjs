@@ -60,8 +60,13 @@ if (!existsSync(configPath)) {
   if ((config.get('slug') ?? '').replace(/"/g, '') !== 'deepseek_harness') error('config.yaml: slug must stay "deepseek_harness" (backup/update identity)')
   if (config.get('ingress') !== 'true') error('config.yaml: ingress must be true')
   if (config.get('ingress_port') !== '8099') error('config.yaml: ingress_port must be 8099 (watchdog/shim contract)')
-  if (config.get('hassio_role') !== 'manager') error('config.yaml: hassio_role should be "manager" (least privilege for our tools)')
-  if (config.has('docker_api') && config.get('docker_api') !== 'false') error('config.yaml: docker_api must stay disabled')
+  if (!['manager', 'admin'].includes((config.get('hassio_role') ?? '').replace(/"/g, ''))) error('config.yaml: hassio_role must be "manager" or "admin"')
+  // This add-on is an intentional privileged host operator (see AGENTS.md): it
+  // needs the Docker API, host PID namespace and full access, gated by the
+  // protection_mode option and the confirmation-token flow.
+  if ((config.get('docker_api') ?? '') !== 'true') error('config.yaml: docker_api must be true for the host-operator design')
+  if ((config.get('host_pid') ?? '') !== 'true') error('config.yaml: host_pid must be true for host-terminal access')
+  if ((config.get('full_access') ?? '') !== 'true') error('config.yaml: full_access must be true for host-terminal access')
   if (config.has('host_network') && config.get('host_network') !== 'false') error('config.yaml: host_network must stay disabled')
   if (config.has('privileged') && config.get('privileged') !== 'false') error('config.yaml: privileged must stay disabled')
   if (!/^"?0\.\d+\.\d+"?$/.test(config.get('version') ?? '')) warn('config.yaml: version should look like 0.1.0')
@@ -216,6 +221,7 @@ if (errors.length > 0) {
 }
 
 console.log('\nAdd-on repository is valid.')
+
 
 
 

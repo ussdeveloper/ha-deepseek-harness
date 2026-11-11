@@ -15,9 +15,9 @@ is constrained, and what remains the user's responsibility.
 
 ## Privileges and confinement
 
-- `hassio_api: true`, `hassio_role: manager`, `homeassistant_api: true` — required
+- `hassio_api: true`, `hassio_role: **admin**`, `homeassistant_api: true` — required for host/OS management and the self protection-mode toggle; the add-on is a privileged host operator by design.
   for apps, backups, store and Core API. `admin` is **not** requested.
-- Deliberately off: `docker_api`, `host_network`, `privileged`, `host_pid`,
+- Deliberately ON for host operation: `docker_api`, `host_pid`, `full_access` (protection mode off by default). Deliberately off: `host_network`, `privileged` capability list,
   `full_access`, custom devices. The container has no host devices or Docker
   socket.
 - The ingress port 8099 is not published. The shim accepts connections only from
@@ -71,4 +71,5 @@ protection-mode toggle (admin-only). Because this token is powerful:
 Open a private security advisory on
 <https://github.com/ussdeveloper/ha-deepseek-harness/security>, or a GitHub issue
 without exploit details if advisories are unavailable.
+
 

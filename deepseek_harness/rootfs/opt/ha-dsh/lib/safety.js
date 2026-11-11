@@ -57,6 +57,7 @@ export const TOOL_CLASSES = Object.freeze({
   sup_network_info: CLASS.READ,
   sup_host_reboot: CLASS.DISRUPTIVE,
   sup_host_shutdown: CLASS.DESTRUCTIVE,
+  sup_host_exec: CLASS.DESTRUCTIVE,
   sup_os_update: CLASS.DISRUPTIVE,
   // WebSocket-backed diagnostics are covered above.
 
