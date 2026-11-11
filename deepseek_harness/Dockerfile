@@ -12,12 +12,9 @@ ARG BUILD_ARCH
 ARG BUILD_VERSION
 ARG DSH_VERSION=0.2.2-rc.1
 
-LABEL \
-  io.hass.name="DeepSeek Harness" \
-  io.hass.description="DeepSeek Harness agent for Home Assistant" \
-  io.hass.type="app" \
-  io.hass.arch="${BUILD_ARCH}" \
-  io.hass.version="${BUILD_VERSION}"
+# Home Assistant's Supervisor adds the io.hass.* labels itself. Do not repeat
+# them here: a version-varying LABEL before the npm install would invalidate the
+# cache layer and force a full 652-package reinstall on every add-on update.
 
 ENV NODE_ENV=production \
     DSH_HOME=/data/dsh-home \
