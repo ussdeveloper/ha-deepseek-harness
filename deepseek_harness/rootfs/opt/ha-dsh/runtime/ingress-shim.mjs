@@ -59,10 +59,12 @@ async function serveStatus(res) {
   for (const candidate of ['/config/configuration.yaml', '/homeassistant/configuration.yaml']) {
     try {
       const text = await readFile(candidate, 'utf8')
+      const topLevelKeys = [...text.matchAll(/^([A-Za-z0-9_.-]+)\s*:/gm)].map((match) => match[1])
       report[candidate] = {
         exists: true,
         bytes: text.length,
         hasDeepseekBlock: /^deepseek_harness:\s*$/m.test(text),
+        topLevelKeys,
       }
     } catch (error) {
       report[candidate] = { exists: false, error: String(error?.code ?? error) }
