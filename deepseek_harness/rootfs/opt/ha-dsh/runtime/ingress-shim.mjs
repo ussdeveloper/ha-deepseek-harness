@@ -190,6 +190,24 @@ async function proxyRequest(req, res) {
   const { path, prefix } = stripIngressPrefix(rawUrl, headerPrefix)
   let target = normalizePluginBundleUrl(path)
 
+  // Temporary diagnostics: `curl -H 'x-dsh-debug: 1'` returns the exact URL
+  // this shim received after Home Assistant's proxies.
+  if (req.headers['x-dsh-debug'] === '1') {
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(
+      JSON.stringify({
+        url: rawUrl,
+        ingress_path: req.headers['x-ingress-path'] ?? null,
+        prefix,
+        path,
+        target,
+        host: req.headers.host ?? null,
+        origin: req.headers.origin ?? null,
+      }),
+    )
+    return
+  }
+
   if (
     isDocumentRequest(req.method ?? 'GET', target) &&
     !/[?&]token=/.test(target) &&
