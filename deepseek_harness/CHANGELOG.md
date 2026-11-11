@@ -4,6 +4,18 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.30
+
+- The operating-context prompt now mandates an orientation step at the start of
+  every session: `memory_get`, `ha_get_config`, `sup_list_addons` (plus
+  `sup_host_info` for system/host questions) and a short "where I am" paragraph
+  naming the add-on, Core version and installed app count. It explicitly forbids
+  presenting as a generic coding agent or asking the user where HA lives.
+- Protection mode: documented that host/OS management works with the `manager`
+  role and does not require protection mode to be off; the test instance's
+  protection mode was toggled off via the Supervisor API
+  (`POST /addons/<slug>/security {protected:false}`).
+
 ## 0.1.29
 
 - Host management: new tools `sup_host_info`, `sup_host_services`,
@@ -244,5 +256,6 @@ file's top version changes.
 - Local knowledge cache for Home Assistant releases/breaking changes (fetched
   locally, no model tokens).
 - Add-on builder: scaffold, validate, build and debug local apps in `/addons`.
+
 
 

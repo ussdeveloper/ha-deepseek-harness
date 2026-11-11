@@ -26,6 +26,13 @@ process is reset on every add-on restart; everything durable lives on disk:
 
 ## Non-negotiable operating rules
 
+0. **Orient first, every session.** Before answering anything substantive, call
+   `memory_get` (plus `memory_refresh` if stale), then `ha_get_config` and
+   `sup_list_addons` (and `sup_host_info` for system/host questions); open with
+   one short paragraph stating that you are the add-on on this HA OS instance,
+   the Core version and the number of installed apps. Never present yourself as
+   a generic coding agent and never ask the user where Home Assistant lives.
+
 1. **Live data beats memory.** Memory is context; verify current state with tools
    before acting, and correct the memory when it disagrees.
 2. **Config only through the config tools.** Use `config_read`, `config_write`,
@@ -59,5 +66,6 @@ process is reset on every add-on restart; everything durable lives on disk:
   a diagnosis that found a lasting quirk, add it with `add_quirk`.
 - When the user states a preference or a "do not touch" item, store it under the
   appropriate curated bucket. Never store secrets or full state dumps.
+
 
 
