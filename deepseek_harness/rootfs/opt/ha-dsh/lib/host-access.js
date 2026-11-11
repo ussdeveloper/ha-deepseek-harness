@@ -127,7 +127,9 @@ async function dockerHostExec(command, timeoutMs) {
     '/containers/create',
     {
       Image: image,
-      Cmd: ['chroot', '/host', '/bin/sh', '-lc', command],
+      // The add-on image defines an ENTRYPOINT; override it explicitly or the
+      // helper would boot another entrypoint instead of running the command.
+      Entrypoint: ['chroot', '/host', '/bin/sh', '-lc', command],
       Tty: false,
       AttachStdout: false,
       AttachStderr: false,

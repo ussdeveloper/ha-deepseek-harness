@@ -4,6 +4,13 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.36
+
+- Host terminal fix: the Docker helper container inherited the add-on image's
+  `ENTRYPOINT`, so it re-ran the add-on entrypoint instead of the command. The
+  create request now overrides `Entrypoint` with
+  `chroot /host /bin/sh -lc <command>`.
+
 ## 0.1.35
 
 - The host diagnostics self-test no longer blocks startup: the ingress shim and
