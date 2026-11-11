@@ -60,7 +60,7 @@ against Home Assistant Supervisor and DSH 0.2.2-rc.1 behaviour.
 1. Supervisor starts the container with `/data` and mapped `/config`, `/addons`.
 2. `run.sh` reads `/data/options.json`; exports `HA_OPT_*` and `DEEPSEEK_*` env vars.
 3. First-run init: copy `/opt/ha-dsh/seed/dsh-home` → `/data/dsh-home`; create
-   `/data/workspace`, `/data/memory`, `/data/backups/config`; set ownership.
+   `/config/deepseek-harness`, `/data/memory`, `/data/backups/config`; set ownership.
 4. Restore managed files that must not drift (safety `AGENTS.md`, managed profile
    rows) when their hash differs from the image copy.
 5. Start `collector.mjs` (detached) — it waits for Supervisor, collects state,
@@ -78,7 +78,7 @@ against Home Assistant Supervisor and DSH 0.2.2-rc.1 behaviour.
 │   ├── AGENTS.md             managed safety prompt (restored from image)
 │   ├── profiles/ha/          our profile: bundle list + patch config
 │   └── sessions/             session history (survives restarts)
-├── workspace/                agent cwd (scratch work, scripts, reports)
+├── workspace/                (unused; the agent workspace lives in /config)
 ├── memory/
 │   ├── state.json            deterministic system snapshot (collector)
 │   ├── notes.md              agent-curated long-term memory
@@ -88,10 +88,13 @@ against Home Assistant Supervisor and DSH 0.2.2-rc.1 behaviour.
     └── config/<timestamp>/   file snapshots before edits (fast rollback)
 ```
 
-`/config` (HA configuration) and `/addons` (local add-ons) are mounted read-write
-and included in `sandbox-policy.additionalWritableRoots`. File edits to
-`/config` go through the plugin's safe-write tool; the agent is instructed never
-to hand-edit service-critical files without snapshot + validation.
+`/config` (HA configuration) and `/addons` (local add-ons) are mounted
+read-write and included in `sandbox-policy.additionalWritableRoots`. The agent's
+workspace is **`/config/deepseek-harness`**, so scratch files and reports sit
+next to the configuration the agent edits and are covered by Home Assistant's own
+backups. File edits to `/config` still go through the plugin's safe-write tool;
+the agent is instructed never to hand-edit service-critical files without
+snapshot + validation.
 
 ## 5. DSH integration (verified against 0.2.2-rc.1)
 
@@ -114,7 +117,7 @@ to hand-edit service-critical files without snapshot + validation.
 - **Skills**: `DSH_BUNDLED_SKILL_DIR=/opt/ha-dsh/skills` (read-only image root)
   so the four `SKILL.md` playbooks are discovered without a patch row.
 - **Sandbox**: `sandbox-policy` mode `workspace-write`, `workspaceRoot
-  /data/workspace`, `additionalWritableRoots` `/config`, `/addons`,
+  /config/deepseek-harness`, `additionalWritableRoots` `/config`, `/addons`,
   `/data/{memory,monitor,knowledge,config-backups}`; `read_only` option switches
   DSH to the read-only preset and the plugin filters out mutating tools.
 - **Auth**: per-process launch token printed on stdout, captured by the
@@ -216,4 +219,5 @@ Remaining validation on real HA OS hardware:
   cookies, WebSocket) and `ingress_stream` uploads;
 - add-on stop/backup timing with `cold` backups;
 - AppArmor profile, security rating and multi-arch GHCR publishing.
+
 

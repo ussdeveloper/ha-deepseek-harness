@@ -47,12 +47,14 @@
       never send Home Assistant internals to web services, cite dates and say
       when knowledge is stale.
 
-# Filesystem boundary: the agent's workspace is /data/workspace, with extra
-# writable roots for the HA configuration, local apps and its own state.
+# Filesystem boundary: the agent's workspace lives inside the Home Assistant
+# configuration folder so its files are visible to the user and included in
+# Home Assistant's own backups. Extra writable roots cover the rest of /config,
+# local apps and the add-on's own persistent state.
 - id: sandbox-policy
   config:
     mode: !!js process.env.DSH_PERMISSION_MODE ?? 'workspace-write'
-    workspaceRoot: /data/workspace
+    workspaceRoot: /config/deepseek-harness
     additionalWritableRoots:
       - /config
       - /addons

@@ -32,7 +32,9 @@ const PROFILE_PATCH = '/opt/ha-dsh/profile.patch.yml'
 const COLLECTOR = '/opt/ha-dsh/runtime/collector.mjs'
 const SHIM = '/opt/ha-dsh/runtime/ingress-shim.mjs'
 const MANAGED_AGENTS = '/opt/ha-dsh/prompts/AGENTS.md'
-const WORKSPACE = '/data/workspace'
+// The agent's working directory lives in the Home Assistant config folder so
+// the user can see its files and HA backups include them.
+const WORKSPACE = '/config/deepseek-harness'
 
 /** Simple structured logger; Home Assistant captures stdout/stderr. */
 function log(level, message) {

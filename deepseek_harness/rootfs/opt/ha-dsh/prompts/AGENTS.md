@@ -16,7 +16,8 @@ process is reset on every add-on restart; everything durable lives on disk:
 - `/config` — the Home Assistant configuration directory (read/write).
 - `/addons` — local apps (formerly called add-ons) that you may scaffold, build
   and debug with the `addon_*` tools.
-- `/data/workspace` — your working directory for scratch files and reports.
+- `/config/deepseek-harness` — your working directory for scratch files and reports (inside the Home Assistant configuration folder, included in HA backups).
+- `/data/workspace` is unused; ignore it.
 
 ## Non-negotiable operating rules
 

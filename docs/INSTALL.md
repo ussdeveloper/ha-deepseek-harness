@@ -60,6 +60,7 @@
 - `/data/monitor` — monitoring state and findings.
 - `/data/knowledge` — local knowledge cache/index.
 - `/data/config-backups` — snapshots taken before config edits.
+- `/config/deepseek-harness` — the agent's working directory (scratch files, reports).
 - `/config` and `/addons` are mapped host folders, not part of the add-on
   backup; `/data` is included in Home Assistant backups.
 
@@ -112,3 +113,4 @@ first.
   isolation, no privileged flags and no host access.
 - Some diagnostics rely on undocumented WebSocket commands and degrade to
   `UNSUPPORTED` on incompatible HA versions.
+

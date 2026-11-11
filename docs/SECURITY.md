@@ -25,7 +25,7 @@ is constrained, and what remains the user's responsibility.
   `dsh.local` authority, `Origin` is dropped, cookies are re-scoped to the
   ingress path.
 - The filesystem sandbox (`sandbox-policy`) starts in `workspace-write` with
-  `/data/workspace` as the workspace and explicit extra roots `/config`,
+  `/config/deepseek-harness` as the workspace and explicit extra roots `/config`,
   `/addons`, `/data/{memory,monitor,knowledge,config-backups}`. Nothing else is
   writable by the agent's fs/shell tools.
 - Read-only mode (`read_only: true`) removes mutating tools and boots DSH in the
@@ -68,3 +68,4 @@ protection-mode toggle (admin-only). Because this token is powerful:
 Open a private security advisory on
 <https://github.com/ussdeveloper/ha-deepseek-harness/security>, or a GitHub issue
 without exploit details if advisories are unavailable.
+

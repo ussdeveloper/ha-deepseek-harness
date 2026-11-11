@@ -50,11 +50,12 @@ COPY rootfs /
 # as a root-owned volume, and the confinement boundary is the container plus the
 # AppArmor profile rather than an unprivileged UID.
 RUN chmod +x /usr/local/bin/* \
- && mkdir -p /data/workspace /data/dsh-home /data/memory /data/monitor /data/knowledge
+ && mkdir -p /data/dsh-home /data/memory /data/monitor /data/knowledge
 
-WORKDIR /data/workspace
+WORKDIR /data
 
 # 8099 is the ingress port. It is not published: Supervisor reaches it over the
 # internal add-on network and Home Assistant's proxy authenticates the user.
 EXPOSE 8099
 ENTRYPOINT ["node", "/opt/ha-dsh/runtime/entrypoint.mjs"]
+

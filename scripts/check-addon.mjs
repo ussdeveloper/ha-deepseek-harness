@@ -93,6 +93,27 @@ for (const key of ['name', 'url']) {
   if (!new RegExp(`^${key}:`, 'm').test(repository)) error(`repository.yaml: missing "${key}"`)
 }
 
+// The runtime entrypoint and the managed DSH profile must agree on the
+// workspace path (it is where the agent writes files and what the sandbox
+// treats as the workspace root).
+try {
+  const entrypoint = await readFile(join(ADDON, 'rootfs/opt/ha-dsh/runtime/entrypoint.mjs'), 'utf8')
+  const profilePatch = await readFile(join(ADDON, 'rootfs/opt/ha-dsh/profile.patch.yml'), 'utf8')
+  const runtimeWorkspace = /const WORKSPACE = '([^']+)'/.exec(entrypoint)?.[1]
+  const sandboxWorkspace = /workspaceRoot:\s*(\S+)/.exec(profilePatch)?.[1]
+  if (runtimeWorkspace === undefined || sandboxWorkspace === undefined) {
+    error('workspace: cannot determine the workspace path from entrypoint/profile patch')
+  } else if (runtimeWorkspace !== sandboxWorkspace) {
+    error(`workspace: entrypoint uses ${runtimeWorkspace} but sandbox-policy uses ${sandboxWorkspace}`)
+  } else if (runtimeWorkspace !== '/config/deepseek-harness') {
+    warn(`workspace: agent workspace is ${runtimeWorkspace} (expected /config/deepseek-harness)`)
+  } else {
+    console.log(`workspace: ${runtimeWorkspace}`)
+  }
+} catch (workspaceError) {
+  error(`workspace: ${workspaceError instanceof Error ? workspaceError.message : workspaceError}`)
+}
+
 // The plugin must compose without touching the network or a Home Assistant host.
 let toolNames = new Set()
 try {
@@ -171,4 +192,5 @@ if (errors.length > 0) {
 }
 
 console.log('\nAdd-on repository is valid.')
+
 
