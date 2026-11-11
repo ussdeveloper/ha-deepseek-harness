@@ -20,7 +20,7 @@
  */
 
 import { spawn } from 'node:child_process'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { getOptions, getPaths, VERSION } from '../lib/paths.js'
@@ -35,7 +35,10 @@ const AGENT_REPORT_NAME = 'FIRST-RUN-REPORT.md'
 
 /** @param {string} message */
 function log(message) {
-  process.stdout.write(`${new Date().toISOString()} [first-run] ${message}\n`)
+  const line = `${new Date().toISOString()} [first-run] ${message}`
+  process.stdout.write(`${line}\n`)
+  const logFile = join(getPaths().dshHome, 'addon.log')
+  void appendFile(logFile, `${line}\n`).catch(() => {})
 }
 
 /** Whether any LLM credential source is likely available. */

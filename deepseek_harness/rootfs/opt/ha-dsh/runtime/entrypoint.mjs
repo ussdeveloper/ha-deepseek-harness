@@ -151,6 +151,33 @@ async function applyConfigurationApiKey() {
   }
 }
 
+/**
+ * On a fresh install, make sure the add-on appears in the Home Assistant
+ * sidebar. Supervisor stores the panel toggle as app option `ingress_panel`;
+ * installs driven by the API can leave it off even when ingress is declared.
+ */
+async function ensureIngressPanel() {
+  if (existsSync('/data/first-run.json')) return
+  const token = process.env.SUPERVISOR_TOKEN
+  if (typeof token !== 'string' || token === '') return
+  try {
+    const response = await fetch('http://supervisor/addons/self/info', {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) return
+    const info = await response.json()
+    if (info?.ingress !== true || info?.ingress_panel === true) return
+    const update = await fetch('http://supervisor/addons/self/options', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ ingress_panel: true }),
+    })
+    log('INFO', update.ok ? 'enabled the sidebar panel' : `could not enable the sidebar panel (HTTP ${update.status})`)
+  } catch (error) {
+    log('WARN', `sidebar panel check failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
 /** Create the persistent directory layout. */
 async function ensureDirectories() {  for (const directory of [
     RUNTIME_DIR,
@@ -309,8 +336,9 @@ async function shutdown(reason, code = 0) {
 async function main() {
   const options = await readOptions()
   exportOptions(options)
-  await applyConfigurationApiKey()
   await ensureDirectories()
+  await applyConfigurationApiKey()
+  await ensureIngressPanel()
 
   await restoreManaged(MANAGED_AGENTS, join(DSH_HOME, 'AGENTS.md'))
 
