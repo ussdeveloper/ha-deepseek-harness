@@ -60,11 +60,26 @@ async function serveStatus(res) {
     try {
       const text = await readFile(candidate, 'utf8')
       const topLevelKeys = [...text.matchAll(/^([A-Za-z0-9_.-]+)\s*:/gm)].map((match) => match[1])
+      let extractedKeyLength = null
+      try {
+        const { extractApiKeyFromConfiguration } = await import('./entrypoint.mjs')
+        const key = extractApiKeyFromConfiguration(text)
+        extractedKeyLength = key === undefined ? 0 : key.length
+      } catch {
+        extractedKeyLength = null
+      }
+      const redactedExcerpt = text
+        .split(/\r?\n/)
+        .filter((line) => /deepseek|api[_-]?key|token:/i.test(line))
+        .slice(0, 20)
+        .map((line) => line.replace(/(:\s*)(["']?)[^"'\s#]{6,}/g, '$1$2[redacted]'))
       report[candidate] = {
         exists: true,
         bytes: text.length,
-        hasDeepseekBlock: /^deepseek_harness:\s*$/m.test(text),
+        hasDeepseekBlock: /^deepseek[_-]?harness\s*:/m.test(text),
         topLevelKeys,
+        extractedKeyLength,
+        excerpt: redactedExcerpt,
       }
     } catch (error) {
       report[candidate] = { exists: false, error: String(error?.code ?? error) }

@@ -25,8 +25,7 @@ ENV NODE_ENV=production \
     DSH_PERMISSION_MODE=workspace-write \
     DSH_BUNDLED_SKILL_DIR=/opt/ha-dsh/skills \
     DSH_WEB_PORT=3080 \
-    DSH_INGRESS_PORT=8099 \
-    DSH_ADDON_VERSION=${BUILD_VERSION}
+    DSH_INGRESS_PORT=8099
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -41,6 +40,10 @@ RUN apt-get update \
 RUN npm install -g "@deepseek-ai/dsh@${DSH_VERSION}" \
  && npm cache clean --force \
  && dsh --version
+
+# BUILD_VERSION changes on every release; keep it out of the cached npm layer so
+# updates only rebuild the small rootfs layer instead of reinstalling 652 packages.
+ENV DSH_ADDON_VERSION=${BUILD_VERSION}
 
 COPY rootfs /
 
@@ -58,4 +61,5 @@ WORKDIR /data
 # internal add-on network and Home Assistant's proxy authenticates the user.
 EXPOSE 8099
 ENTRYPOINT ["node", "/opt/ha-dsh/runtime/entrypoint.mjs"]
+
 
