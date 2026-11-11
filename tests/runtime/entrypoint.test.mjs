@@ -31,6 +31,17 @@ test('extractApiKeyFromConfiguration accepts alternative key names', () => {
   assert.equal(entrypoint.extractApiKeyFromConfiguration(yaml), 'sk-alt-12345678')
 })
 
+test('normalizeDeepSeekBaseUrl appends the Anthropic path to the vendor root', () => {
+  assert.equal(entrypoint.normalizeDeepSeekBaseUrl('https://api.deepseek.com'), 'https://api.deepseek.com/anthropic')
+  assert.equal(entrypoint.normalizeDeepSeekBaseUrl('https://api.deepseek.com/'), 'https://api.deepseek.com/anthropic')
+  assert.equal(
+    entrypoint.normalizeDeepSeekBaseUrl('https://api.deepseek.com/anthropic/'),
+    'https://api.deepseek.com/anthropic',
+  )
+  assert.equal(entrypoint.normalizeDeepSeekBaseUrl('https://proxy.example.test/v1'), 'https://proxy.example.test/v1')
+  assert.equal(entrypoint.normalizeDeepSeekBaseUrl(''), '')
+})
+
 test('extractApiKeyFromConfiguration accepts api: as the key name', () => {
   const yaml = ['deepseekharness:', '  api: sk-live12345678'].join('\n')
   assert.equal(entrypoint.extractApiKeyFromConfiguration(yaml), 'sk-live12345678')

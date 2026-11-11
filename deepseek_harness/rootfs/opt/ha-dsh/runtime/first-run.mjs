@@ -261,7 +261,8 @@ export async function runFirstRun() {
   // failure counter: attempts that failed with no key must not block the first
   // successful analysis once the key is provided.
   const trimmedKey = typeof process.env.DEEPSEEK_API_KEY === 'string' ? process.env.DEEPSEEK_API_KEY.trim() : ''
-  const credentialFingerprint = trimmedKey === '' ? '' : sha256(trimmedKey).slice(0, 16)
+  const baseUrl = typeof process.env.DEEPSEEK_BASE_URL === 'string' ? process.env.DEEPSEEK_BASE_URL.trim() : ''
+  const credentialFingerprint = trimmedKey === '' ? '' : sha256(`${trimmedKey}|${baseUrl}`).slice(0, 16)
   if (credentialFingerprint !== '' && marker.credentialHash !== credentialFingerprint) {
     marker.attempts = 0
     marker.done = false

@@ -61,6 +61,30 @@ async function readOptions() {
   }
 }
 
+/**
+ * Normalise the configured API base URL for DSH's DeepSeek provider.
+ *
+ * DSH talks to DeepSeek through the Anthropic-compatible endpoint
+ * (`https://api.deepseek.com/anthropic`). Users often enter just
+ * `https://api.deepseek.com`, which would send `/v1/messages` to the wrong
+ * path and fail with HTTP 404.
+ * @param {string} value
+ * @returns {string}
+ */
+export function normalizeDeepSeekBaseUrl(value) {
+  const trimmed = String(value ?? '').trim().replace(/\/+$/, '')
+  if (trimmed === '') return trimmed
+  try {
+    const url = new URL(trimmed)
+    if (url.hostname === 'api.deepseek.com' && (url.pathname === '' || url.pathname === '/')) {
+      return 'https://api.deepseek.com/anthropic'
+    }
+  } catch {
+    return trimmed
+  }
+  return trimmed
+}
+
 /** @param {Record<string, unknown>} options */
 function exportOptions(options) {
   const mapping = [
@@ -88,7 +112,7 @@ function exportOptions(options) {
   }
   const baseUrl = options.base_url
   if (typeof baseUrl === 'string' && baseUrl.trim() !== '') {
-    process.env.DEEPSEEK_BASE_URL = baseUrl.trim().replace(/\/+$/, '')
+    process.env.DEEPSEEK_BASE_URL = normalizeDeepSeekBaseUrl(baseUrl)
   }
   process.env.DSH_PERMISSION_MODE = options.read_only === true ? 'read-only' : 'workspace-write'
 }

@@ -7,7 +7,7 @@ configuration:
       the DeepSeek Harness UI.
   base_url:
     name: "API base URL"
-    description: "OpenAI-compatible endpoint; change only for proxies or self-hosted gateways."
+    description: "DeepSeek Anthropic-compatible API base (https://api.deepseek.com/anthropic). Change only for proxies or self-hosted gateways."
   read_only:
     name: "Read-only mode"
     description: >-
@@ -51,5 +51,6 @@ configuration:
     description: >-
       Optional. Set if you access Home Assistant through a fixed external URL
       (e.g. Nabu Casa); used only for links the agent generates.
+
 
 
