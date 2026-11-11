@@ -63,15 +63,16 @@
       - /data/knowledge
       - /data/monitor
 
-# Approval stays "ask" (the shipped base already computes it from the permission
-# mode; this row keeps it explicit if the mode ever changes). The plugin's
-# dry-run confirmation-token protocol is the second, independent gate.
+# Approval stays "ask" unless the deployment runs in danger-full-access mode
+# (the default, matching the add-on's full_access option). The plugin's
+# dry-run confirmation-token protocol remains the independent gate.
 - id: approval
   config:
-    policy: ask
+    policy: !!js (process.env.DSH_PERMISSION_MODE ?? '') === 'danger-full-access' ? 'never' : 'ask'
 
-# Restate the shipped permission presets so the file system remains the source
-# of truth for what each mode means.
+# Restate the shipped permission presets and let the environment select the
+# default preset, so read_only / full_access options move both the sandbox and
+# the default session preset.
 - id: permission
   config:
     presets:
@@ -84,4 +85,4 @@
       danger-full-access:
         sandbox: danger-full-access
         approval: never
-    defaultPreset: workspace-write
+    defaultPreset: !!js process.env.DSH_PERMISSION_MODE ?? 'workspace-write'

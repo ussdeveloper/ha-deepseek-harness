@@ -24,10 +24,13 @@ is constrained, and what remains the user's responsibility.
   the Supervisor network and loopback; `Host` is rewritten to the trusted
   `dsh.local` authority, `Origin` is dropped, cookies are re-scoped to the
   ingress path.
-- The filesystem sandbox (`sandbox-policy`) starts in `workspace-write` with
-  `/config/deepseek-harness` as the workspace and explicit extra roots `/config`,
-  `/addons`, `/data/{memory,monitor,knowledge,config-backups}`. Nothing else is
-  writable by the agent's fs/shell tools.
+- The DSH sandbox runs in `danger-full-access` **inside the add-on container** by
+  default (`full_access: true`), because the agent's job is to repair the local
+  installation; the container remains the boundary (no host devices, no Docker
+  socket, no host network). Set `full_access: false` for `workspace-write`
+  (`/config/deepseek-harness` plus the explicit roots) or `read_only: true` for
+  the read-only preset. Mutating plugin tools keep their own capability gates and
+  confirmation tokens regardless of the sandbox mode.
 - Read-only mode (`read_only: true`) removes mutating tools and boots DSH in the
   `read-only` sandbox preset.
 

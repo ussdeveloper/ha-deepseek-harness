@@ -129,10 +129,12 @@ hand-edit service-critical files without snapshot + validation.
   `/data` cannot weaken it. `$DSH_HOME/AGENTS.md` adds operating context.
 - **Skills**: `DSH_BUNDLED_SKILL_DIR=/opt/ha-dsh/skills` (read-only image root)
   so the four `SKILL.md` playbooks are discovered without a patch row.
-- **Sandbox**: `sandbox-policy` mode `workspace-write`, `workspaceRoot
-  /config/deepseek-harness`, `additionalWritableRoots` `/config`, `/addons`,
-  `/data/{memory,monitor,knowledge,config-backups}`; `read_only` option switches
-  DSH to the read-only preset and the plugin filters out mutating tools.
+- **Sandbox**: `sandbox-policy` mode comes from `DSH_PERMISSION_MODE`
+  (`danger-full-access` by default via the `full_access` option; `read_only`
+  switches to the read-only preset and the plugin filters mutating tools;
+  `full_access: false` selects `workspace-write` with `/config/deepseek-harness`,
+  `/config`, `/addons` and `/data/...` writable). The container remains the
+  security boundary; plugin tools keep their own gates.
 - **Auth**: per-process launch token printed on stdout, captured by the
   entrypoint and injected by the shim; DSH issues an HMAC-signed session cookie
   scoped to the ingress path.
@@ -232,5 +234,6 @@ Remaining validation on real HA OS hardware:
   cookies, WebSocket) and `ingress_stream` uploads;
 - add-on stop/backup timing with `cold` backups;
 - AppArmor profile, security rating and multi-arch GHCR publishing.
+
 
 

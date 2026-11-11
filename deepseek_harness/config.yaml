@@ -1,5 +1,5 @@
 name: "DeepSeek Harness"
-version: "0.1.25"
+version: "0.1.27"
 slug: "deepseek_harness"
 description: "DeepSeek Harness agent for Home Assistant: configure, monitor, maintain and extend your smart home safely."
 url: "https://github.com/ussdeveloper/ha-deepseek-harness"
@@ -43,6 +43,7 @@ map:
 options:
   base_url: "https://api.deepseek.com/anthropic"
   read_only: false
+  full_access: true
   allow_restarts: false
   allow_addon_management: false
   monitor_enabled: true
@@ -56,6 +57,7 @@ schema:
   deepseek_api_key: "password?"
   base_url: "url"
   read_only: "bool"
+  full_access: "bool"
   allow_restarts: "bool"
   allow_addon_management: "bool"
   monitor_enabled: "bool"
@@ -75,6 +77,8 @@ backup_exclude:
   - "*.log"
   - "tmp/*"
 timeout: 30
+
+
 
 
 

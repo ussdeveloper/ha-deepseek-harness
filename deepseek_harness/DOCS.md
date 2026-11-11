@@ -43,6 +43,7 @@ you build new apps (add-ons) — always with stability and safety first.
 | `deepseek_api_key` | — | DeepSeek API key (optional; can be set in the UI) |
 | `base_url` | `https://api.deepseek.com` | OpenAI-compatible endpoint |
 | `read_only` | `false` | Disable every tool that changes Home Assistant |
+| `full_access` | `true` | DSH runs in danger-full-access inside the container; `read_only` still wins |
 | `allow_restarts` | `false` | Allow Home Assistant restarts after confirmation |
 | `allow_addon_management` | `false` | Allow app install/update/rebuild/uninstall after confirmation |
 | `monitor_enabled` | `true` | Health checks, digest, backup-age alerts |

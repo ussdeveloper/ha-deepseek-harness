@@ -58,12 +58,13 @@ export function getPaths() {
  *   monitorEnabled: boolean, notifyService: string, quietHours: string,
  *   backupRetention: number, publicUrl: string, webPort: number,
  *   ingressPort: number, monitorIntervalMin: number, digestTime: string,
- *   firstRunAnalysis: boolean,
+ *   firstRunAnalysis: boolean, fullAccess: boolean,
  * }}
  */
 export function getOptions() {
   return {
     readOnly: parseBool(process.env.DSH_OPT_READ_ONLY, false),
+    fullAccess: parseBool(process.env.DSH_OPT_FULL_ACCESS, true),
     allowRestarts: parseBool(process.env.DSH_OPT_ALLOW_RESTARTS, false),
     allowAddonManagement: parseBool(process.env.DSH_OPT_ALLOW_ADDON_MANAGEMENT, false),
     monitorEnabled: parseBool(process.env.DSH_OPT_MONITOR_ENABLED, true),

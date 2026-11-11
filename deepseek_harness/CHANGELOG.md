@@ -4,6 +4,26 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.27
+
+- **Full access by default.** New option `full_access` (default `true`) boots
+  DSH with `danger-full-access` inside the add-on container and selects the
+  matching default permission preset, so the agent can inspect and repair the
+  local Home Assistant instance without sandbox friction. `read_only` still
+  wins, and the plugin's confirmation tokens plus the safety prompt still gate
+  destructive actions. Set `full_access: false` to keep `workspace-write`.
+- The startup log now prints the resolved permission mode.
+
+## 0.1.26
+
+- The agent now always receives an authoritative **Home Assistant operating
+  context** section in its system prompt, registered by the plugin: it knows it
+  runs as the add-on on Home Assistant OS, has Supervisor/REST/WebSocket access,
+  `/config` and `/addons`, its 66 tools, and must diagnose and fix the live
+  instance locally instead of giving generic advice. This bypasses the shipped
+  DSH preset persona ("You are a coding agent…"), which was shadowing the
+  deployment `system-prompt` config.
+
 ## 0.1.25
 
 - Repository rules: added root `AGENTS.md` with the release checklist and a hard
@@ -202,3 +222,4 @@ file's top version changes.
 - Local knowledge cache for Home Assistant releases/breaking changes (fetched
   locally, no model tokens).
 - Add-on builder: scaffold, validate, build and debug local apps in `/addons`.
+

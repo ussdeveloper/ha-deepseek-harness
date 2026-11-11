@@ -13,6 +13,13 @@ configuration:
     description: >-
       Disables every tool that changes Home Assistant. Recommended while
       evaluating the agent.
+  full_access:
+    name: "Full access (recommended)"
+    description: >-
+      Boots DSH with danger-full-access inside the add-on container so the agent
+      can read and fix the local Home Assistant instance without sandbox
+      friction. Destructive actions still require the plugin's confirmation
+      tokens, and the read_only option still wins when enabled.
   allow_restarts:
     name: "Allow Home Assistant restarts"
     description: >-

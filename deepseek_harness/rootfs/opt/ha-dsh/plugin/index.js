@@ -17,6 +17,7 @@
  */
 
 import { filterTools, readOnly } from '../lib/safety.js'
+import { registerSystemContext } from './system-context.js'
 import * as haModule from './tools/ha.js'
 import * as supModule from './tools/sup.js'
 import * as configModule from './tools/config.js'
@@ -31,7 +32,7 @@ import * as extrasModule from './tools/extras.js'
 export const name = 'ha-deepseek-harness'
 
 /** Services this plugin contributes to / needs. */
-export const inject = ['tools']
+export const inject = ['tools', 'systemPrompt']
 
 /** The tool modules, in registration order. */
 export const toolModules = Object.freeze({
@@ -88,6 +89,9 @@ export function collectDefinitions(modules = toolModules) {
  */
 export function apply(ctx) {
   const readOnlyMode = readOnly()
+  if (registerSystemContext(ctx)) {
+    console.log('[ha-deepseek-harness] registered Home Assistant system context section')
+  }
   const definitions = filterTools(collectDefinitions())
   let registered = 0
   for (const definition of definitions) {

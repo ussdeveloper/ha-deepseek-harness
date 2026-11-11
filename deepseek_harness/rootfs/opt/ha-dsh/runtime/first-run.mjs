@@ -168,7 +168,7 @@ async function runAnalysis(task, timeoutMs) {
         cwd: workspace,
         env: {
           ...process.env,
-          DSH_PERMISSION_MODE: 'workspace-write',
+          DSH_PERMISSION_MODE: process.env.DSH_PERMISSION_MODE ?? 'workspace-write',
           DSH_ADDON_VERSION: VERSION,
         },
         stdio: ['ignore', 'pipe', 'pipe'],

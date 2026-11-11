@@ -85,12 +85,24 @@ export function normalizeDeepSeekBaseUrl(value) {
   return trimmed
 }
 
+/**
+ * Resolve the DSH permission preset from the add-on options.
+ * @param {{ read_only?: unknown, full_access?: unknown }} options
+ * @returns {'read-only'|'workspace-write'|'danger-full-access'}
+ */
+export function resolvePermissionMode(options) {
+  if (options.read_only === true) return 'read-only'
+  if (options.full_access === false) return 'workspace-write'
+  return 'danger-full-access'
+}
+
 /** @param {Record<string, unknown>} options */
 function exportOptions(options) {
   const mapping = [
     ['model', 'DSH_OPT_MODEL'],
     ['base_url', 'DSH_OPT_BASE_URL'],
     ['read_only', 'DSH_OPT_READ_ONLY'],
+    ['full_access', 'DSH_OPT_FULL_ACCESS'],
     ['allow_restarts', 'DSH_OPT_ALLOW_RESTARTS'],
     ['allow_addon_management', 'DSH_OPT_ALLOW_ADDON_MANAGEMENT'],
     ['monitor_enabled', 'DSH_OPT_MONITOR_ENABLED'],
@@ -114,7 +126,13 @@ function exportOptions(options) {
   if (typeof baseUrl === 'string' && baseUrl.trim() !== '') {
     process.env.DEEPSEEK_BASE_URL = normalizeDeepSeekBaseUrl(baseUrl)
   }
-  process.env.DSH_PERMISSION_MODE = options.read_only === true ? 'read-only' : 'workspace-write'
+  // Read-only always wins. Otherwise full access is the default: inside the
+  // add-on container the DSH workspace sandbox would only get in the way of
+  // repairing the local instance, while the plugin's confirmation-token gates
+  // and the safety prompt still constrain actions.
+  const permissionMode = resolvePermissionMode(options)
+  process.env.DSH_PERMISSION_MODE = permissionMode
+  process.env.DSH_OPT_PERMISSION_MODE = permissionMode
 }
 
 /**
@@ -509,7 +527,7 @@ async function main() {
 
   log(
     'INFO',
-    `DeepSeek Harness starting: web=127.0.0.1:${WEB_PORT}, ingress=0.0.0.0:${INGRESS_PORT}, read_only=${
+    `DeepSeek Harness starting: web=127.0.0.1:${WEB_PORT}, ingress=0.0.0.0:${INGRESS_PORT}, permission=${process.env.DSH_PERMISSION_MODE}, read_only=${
       options.read_only === true
     }, monitor=${options.monitor_enabled !== false}`,
   )

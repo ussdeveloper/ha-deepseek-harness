@@ -20,6 +20,9 @@
    - `deepseek_api_key` — your key (optional; can be entered in the UI instead)
    - `base_url` — leave default unless you use a proxy/self-hosted gateway
    - `read_only` — start here if you only want advice and monitoring
+   - `full_access` — **on by default**: DSH runs in danger-full-access inside the
+     container so the agent can repair this instance; destructive actions still
+     require confirmation tokens. Turn it off for `workspace-write`.
    - `allow_restarts`, `allow_addon_management` — off by default
    - `monitor_enabled` — health checks, digest and backup-age alerts
    - `first_run_analysis` — one read-only model assessment on the first start

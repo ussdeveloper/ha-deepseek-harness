@@ -31,6 +31,14 @@ test('extractApiKeyFromConfiguration accepts alternative key names', () => {
   assert.equal(entrypoint.extractApiKeyFromConfiguration(yaml), 'sk-alt-12345678')
 })
 
+test('resolvePermissionMode defaults to full access and honours read_only', () => {
+  assert.equal(entrypoint.resolvePermissionMode({}), 'danger-full-access')
+  assert.equal(entrypoint.resolvePermissionMode({ full_access: true }), 'danger-full-access')
+  assert.equal(entrypoint.resolvePermissionMode({ full_access: false }), 'workspace-write')
+  assert.equal(entrypoint.resolvePermissionMode({ read_only: true }), 'read-only')
+  assert.equal(entrypoint.resolvePermissionMode({ read_only: true, full_access: true }), 'read-only')
+})
+
 test('normalizeDeepSeekBaseUrl appends the Anthropic path to the vendor root', () => {
   assert.equal(entrypoint.normalizeDeepSeekBaseUrl('https://api.deepseek.com'), 'https://api.deepseek.com/anthropic')
   assert.equal(entrypoint.normalizeDeepSeekBaseUrl('https://api.deepseek.com/'), 'https://api.deepseek.com/anthropic')
