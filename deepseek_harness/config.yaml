@@ -1,5 +1,5 @@
 name: "DeepSeek Harness"
-version: "0.1.31"
+version: "0.1.32"
 slug: "deepseek_harness"
 description: "DeepSeek Harness agent for Home Assistant: configure, monitor, maintain and extend your smart home safely."
 url: "https://github.com/ussdeveloper/ha-deepseek-harness"
@@ -30,6 +30,9 @@ homeassistant_api: true
 docker_api: true
 host_pid: true
 full_access: true
+# The default AppArmor profile blocks setns/ptrace, which the host terminal
+# needs. Disabling it is required for host-level operation of this app.
+apparmor: false
 
 # Files the agent may use: the HA configuration (read/write) and the local
 # add-ons folder (read/write, for the add-on builder). Read-only: share, ssl.
@@ -86,6 +89,7 @@ backup_exclude:
   - "*.log"
   - "tmp/*"
 timeout: 30
+
 
 
 

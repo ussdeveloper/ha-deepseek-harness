@@ -4,6 +4,15 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.32
+
+- Host terminal fix: `apparmor: false` is now declared, because the default
+  AppArmor profile blocks `setns`/`ptrace` and made `nsenter` fail despite
+  `host_pid`/`full_access`. The startup self-test now also probes the Docker API
+  over `/run/docker.sock`.
+- Warning: with protection mode off, full access and no AppArmor confinement this
+  app is effectively root on the host; keep the confirmation-token flow in place.
+
 ## 0.1.31
 
 - **Host-level access.** The add-on now runs with `hassio_role: admin`,
@@ -272,6 +281,7 @@ file's top version changes.
 - Local knowledge cache for Home Assistant releases/breaking changes (fetched
   locally, no model tokens).
 - Add-on builder: scaffold, validate, build and debug local apps in `/addons`.
+
 
 
 

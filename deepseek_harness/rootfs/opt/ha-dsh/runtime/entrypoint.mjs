@@ -305,7 +305,26 @@ function logHostAccess() {
   } catch {
     nsenter = 'error'
   }
-  log(`host access: hostRoot=${hostRoot ? 'ok' : 'no'} dockerSocket=${dockerSocket} nsenter=${nsenter}`)
+  let dockerApi = 'not-checked'
+  if (dockerSocket !== 'none') {
+    try {
+      const probe = spawnSync(
+        process.execPath,
+        [
+          '-e',
+          "const http=require('node:http');const r=http.request({socketPath:process.argv[1],path:'/version',method:'GET'},res=>{res.resume();process.exit(res.statusCode===200?0:2)});r.on('error',()=>process.exit(3));r.end()",
+          dockerSocket,
+        ],
+        { timeout: 5_000, stdio: 'ignore' },
+      )
+      dockerApi = probe.status === 0 ? 'ok' : `status ${probe.status ?? 'error'}`
+    } catch {
+      dockerApi = 'error'
+    }
+  }
+  log(
+    `host access: hostRoot=${hostRoot ? 'ok' : 'no'} dockerSocket=${dockerSocket} dockerApi=${dockerApi} nsenter=${nsenter}`,
+  )
 }
 
 /** Create the persistent directory layout. */
