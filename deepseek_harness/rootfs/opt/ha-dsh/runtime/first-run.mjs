@@ -25,7 +25,7 @@ import { join } from 'node:path'
 
 import { getOptions, getPaths, VERSION } from '../lib/paths.js'
 import { recordChange, readMemory, refreshCollected } from '../lib/memory-store.js'
-import { nowIso, writeTextAtomic } from '../lib/result.js'
+import { nowIso, sha256, writeTextAtomic } from '../lib/result.js'
 
 const MARKER_NAME = 'first-run.json'
 const MAX_ATTEMPTS = 3
@@ -257,6 +257,17 @@ export async function runFirstRun() {
   const options = getOptions()
   const markerPath = join(paths.data, MARKER_NAME)
   const marker = await readMarker(markerPath)
+  // Fingerprint the configured credential so a new or changed key resets the
+  // failure counter: attempts that failed with no key must not block the first
+  // successful analysis once the key is provided.
+  const trimmedKey = typeof process.env.DEEPSEEK_API_KEY === 'string' ? process.env.DEEPSEEK_API_KEY.trim() : ''
+  const credentialFingerprint = trimmedKey === '' ? '' : sha256(trimmedKey).slice(0, 16)
+  if (credentialFingerprint !== '' && marker.credentialHash !== credentialFingerprint) {
+    marker.attempts = 0
+    marker.done = false
+    marker.llm = false
+    marker.credentialHash = credentialFingerprint
+  }
   // A completed analysis is final. A deterministic-only marker (no credentials,
   // option disabled, or failed attempt) is retried on later boots once the
   // conditions are met, so adding an API key does not require wiping /data.
@@ -361,4 +372,5 @@ export async function firstRunDone() {
   const marker = await readMarker(join(getPaths().data, MARKER_NAME))
   return marker.done === true
 }
+
 
