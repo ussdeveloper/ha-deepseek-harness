@@ -119,7 +119,7 @@ export function extractApiKeyFromConfiguration(text) {
       if (block === null) continue
       const inline = block[2].trim()
       if (inline !== '' && !inline.startsWith('#')) {
-        const inlineKey = /(?:api[_-]?key|token|key)\s*:\s*([^,}]+)/i.exec(inline)
+        const inlineKey = /(?:api[_-]?key|deepseek_api_key|api|token|key|password)\s*:\s*([^,}]+)/i.exec(inline)
         if (inlineKey !== null) {
           const value = inlineKey[1].trim().replace(/^["']|["',]$/g, '')
           if (value !== '' && !/^(null|~)$/i.test(value)) return value
@@ -135,7 +135,7 @@ export function extractApiKeyFromConfiguration(text) {
     if (indent === 0) break
     if (blockIndent === 0) blockIndent = indent
     if (indent < blockIndent) break
-    const match = /^\s*(?:api[_-]?key|deepseek_api_key|token|key)\s*:\s*(.+?)\s*$/.exec(line)
+    const match = /^\s*(?:api[_-]?key|deepseek_api_key|api|token|key|password)\s*:\s*(.+?)\s*$/.exec(line)
     if (match !== null) {
       const value = match[1].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '')
       if (value !== '' && !/^(null|~)$/i.test(value)) return value

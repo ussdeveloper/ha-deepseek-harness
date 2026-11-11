@@ -31,6 +31,11 @@ test('extractApiKeyFromConfiguration accepts alternative key names', () => {
   assert.equal(entrypoint.extractApiKeyFromConfiguration(yaml), 'sk-alt-12345678')
 })
 
+test('extractApiKeyFromConfiguration accepts api: as the key name', () => {
+  const yaml = ['deepseekharness:', '  api: sk-live12345678'].join('\n')
+  assert.equal(entrypoint.extractApiKeyFromConfiguration(yaml), 'sk-live12345678')
+})
+
 test('extractApiKeyFromConfiguration accepts the underscore-less block form', () => {
   const yaml = ['default_config:', 'deepseekharness:', '  api_key: sk-nounderscore123'].join('\n')
   assert.equal(entrypoint.extractApiKeyFromConfiguration(yaml), 'sk-nounderscore123')
