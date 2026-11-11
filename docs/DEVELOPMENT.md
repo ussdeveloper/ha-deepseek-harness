@@ -64,7 +64,7 @@ The published CLI can be exercised on a workstation:
 npm install --no-save @deepseek-ai/dsh@0.2.2-rc.1
 DSH_HOME="$PWD/scratch/dev-dsh-home" \
 DSH_ADDON_VERSION=dev \
-node node_modules/@deepseek-ai/dsh/bin/dsh.js web \
+node node_modules/@deepseek-ai/dsh/lib/bin.js web \
   --patch "$PWD/deepseek_harness/rootfs/opt/ha-dsh/profile.patch.yml" \
   --patch "$PWD/deepseek_harness/rootfs/opt/ha-dsh/plugin/cordis.patch.yml" \
   --no-open --host 127.0.0.1 --port 3199 --trusted-host dsh.local
@@ -109,6 +109,7 @@ public release, publish a multi-arch image to GHCR and add `image:` matching
 
 ## CI
 
-`.github/workflows/validate.yml` (to be added with the first push): Node 24 test
+`.github/workflows/validate.yml`: Node 24 test
 run, YAML/manifest check, Dockerfile build for amd64. Publishing images uses the
 Home Assistant builder actions described in `docs/research/ha-addon.md`.
+
