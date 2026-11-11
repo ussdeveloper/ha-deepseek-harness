@@ -138,15 +138,23 @@ export function extractApiKeyFromConfiguration(text) {
  * key is configured. The value is placed in the process environment only.
  */
 async function applyConfigurationApiKey() {
-  if (typeof process.env.DEEPSEEK_API_KEY === 'string' && process.env.DEEPSEEK_API_KEY.trim() !== '') return false
+  const fromOptions = typeof process.env.DEEPSEEK_API_KEY === 'string' && process.env.DEEPSEEK_API_KEY.trim() !== ''
+  if (fromOptions) {
+    log('INFO', `API key provided by add-on options/environment (length ${process.env.DEEPSEEK_API_KEY.trim().length})`)
+    return true
+  }
   try {
     const text = await readFile(join(CONFIG_DIR, 'configuration.yaml'), 'utf8')
     const key = extractApiKeyFromConfiguration(text)
-    if (key === undefined) return false
+    if (key === undefined) {
+      log('WARN', 'no DeepSeek API key in add-on options or /config/configuration.yaml')
+      return false
+    }
     process.env.DEEPSEEK_API_KEY = key
-    log('INFO', 'using DeepSeek API key from /config/configuration.yaml')
+    log('INFO', `using DeepSeek API key from /config/configuration.yaml (length ${key.length})`)
     return true
-  } catch {
+  } catch (error) {
+    log('WARN', `could not read /config/configuration.yaml: ${error instanceof Error ? error.message : String(error)}`)
     return false
   }
 }
@@ -157,22 +165,26 @@ async function applyConfigurationApiKey() {
  * installs driven by the API can leave it off even when ingress is declared.
  */
 async function ensureIngressPanel() {
-  if (existsSync('/data/first-run.json')) return
+  const marker = '/data/.panel-initialized'
+  if (existsSync(marker)) return
   const token = process.env.SUPERVISOR_TOKEN
   if (typeof token !== 'string' || token === '') return
   try {
     const response = await fetch('http://supervisor/addons/self/info', {
       headers: { authorization: `Bearer ${token}` },
     })
-    if (!response.ok) return
-    const info = await response.json()
-    if (info?.ingress !== true || info?.ingress_panel === true) return
-    const update = await fetch('http://supervisor/addons/self/options', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ ingress_panel: true }),
-    })
-    log('INFO', update.ok ? 'enabled the sidebar panel' : `could not enable the sidebar panel (HTTP ${update.status})`)
+    if (response.ok) {
+      const info = await response.json()
+      if (info?.ingress === true && info?.ingress_panel !== true) {
+        const update = await fetch('http://supervisor/addons/self/options', {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ ingress_panel: true }),
+        })
+        log('INFO', update.ok ? 'enabled the sidebar panel' : `could not enable the sidebar panel (HTTP ${update.status})`)
+      }
+    }
+    await writeFile(marker, `${JSON.stringify({ initializedAt: new Date().toISOString() }, null, 2)}\n`, { mode: 0o600 })
   } catch (error) {
     log('WARN', `sidebar panel check failed: ${error instanceof Error ? error.message : String(error)}`)
   }
