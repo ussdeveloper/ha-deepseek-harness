@@ -4,6 +4,12 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.1
+
+- Fix: `quiet_hours` schema now accepts an empty value as well as `HH:MM-HH:MM`
+  (empty default previously failed Supervisor option validation, so the add-on
+  refused to start).
+
 ## 0.1.0 — developer preview
 
 - First public scaffold: DeepSeek Harness Web UI served through Home Assistant
