@@ -257,7 +257,14 @@ export async function runFirstRun() {
   const options = getOptions()
   const markerPath = join(paths.data, MARKER_NAME)
   const marker = await readMarker(markerPath)
-  if (marker.done === true) return
+  // A completed analysis is final. A deterministic-only marker (no credentials,
+  // option disabled, or failed attempt) is retried on later boots once the
+  // conditions are met, so adding an API key does not require wiping /data.
+  if (marker.done === true && marker.llm === true) return
+  if (marker.done === true && marker.llm !== true) {
+    if (!getOptions().firstRunAnalysis) return
+    if (!(await hasCredentials())) return
+  }
 
   if (marker.llm === false && Number(marker.attempts ?? 0) >= MAX_ATTEMPTS) {
     log('first-run recognition already completed (deterministic report only); skipping')
