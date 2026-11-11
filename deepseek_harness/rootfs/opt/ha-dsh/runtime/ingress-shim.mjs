@@ -56,34 +56,49 @@ async function serveStatus(res) {
       report[dir] = { exists: false, error: String(error?.code ?? error) }
     }
   }
-  for (const candidate of ['/config/configuration.yaml', '/homeassistant/configuration.yaml']) {
-    try {
-      const text = await readFile(candidate, 'utf8')
-      const topLevelKeys = [...text.matchAll(/^([A-Za-z0-9_.-]+)\s*:/gm)].map((match) => match[1])
-      let extractedKeyLength = null
+  // Which files in /config changed recently, and which mention deepseek at all.
+  try {
+    const { stat } = await import('node:fs/promises')
+    const { createHash } = await import('node:crypto')
+    const entries = await readdir('/config', { withFileTypes: true })
+    const changed = []
+    const mentions = []
+    for (const entry of entries) {
+      if (!entry.isFile()) continue
+      const file = `/config/${entry.name}`
       try {
-        const { extractApiKeyFromConfiguration } = await import('./entrypoint.mjs')
-        const key = extractApiKeyFromConfiguration(text)
-        extractedKeyLength = key === undefined ? 0 : key.length
+        const info = await stat(file)
+        changed.push({ file, mtime: info.mtime.toISOString(), bytes: info.size })
+        if (/\.ya?ml$/i.test(entry.name) && info.size <= 256 * 1024) {
+          const text = await readFile(file, 'utf8')
+          if (/deepseek/i.test(text)) {
+            mentions.push({
+              file,
+              hasApiKeyLine: /api[_-]?key\s*:/i.test(text),
+              hasSkValue: /\bsk-[A-Za-z0-9_-]{8,}\b/.test(text),
+            })
+          }
+        }
       } catch {
-        extractedKeyLength = null
+        // unreadable file: ignore
       }
-      const redactedExcerpt = text
-        .split(/\r?\n/)
-        .filter((line) => /deepseek|api[_-]?key|token:/i.test(line))
-        .slice(0, 20)
-        .map((line) => line.replace(/(:\s*)(["']?)[^"'\s#]{6,}/g, '$1$2[redacted]'))
-      report[candidate] = {
-        exists: true,
-        bytes: text.length,
-        hasDeepseekBlock: /^deepseek[_-]?harness\s*:/m.test(text),
-        topLevelKeys,
-        extractedKeyLength,
-        excerpt: redactedExcerpt,
-      }
-    } catch (error) {
-      report[candidate] = { exists: false, error: String(error?.code ?? error) }
     }
+    report.recentConfigFiles = changed.sort((a, b) => b.mtime.localeCompare(a.mtime)).slice(0, 12)
+    report.yamlFilesMentioningDeepseek = mentions
+    const configFile = '/config/configuration.yaml'
+    const text = await readFile(configFile, 'utf8')
+    const redacted = text
+      .split(/\r?\n/)
+      .map((line) => line.replace(/(:\s*)(["']?)(?!\[redacted\])[^"'\s#]{6,}/g, '$1$2[redacted]'))
+      .join('\n')
+    report.configurationFile = {
+      bytes: text.length,
+      sha256: createHash('sha256').update(text).digest('hex'),
+      mtime: (await stat(configFile)).mtime.toISOString(),
+      redactedContent: redacted,
+    }
+  } catch (error) {
+    report.configurationFile = { error: String(error) }
   }
   res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
   res.end(`${JSON.stringify(report, null, 2)}\n`)
