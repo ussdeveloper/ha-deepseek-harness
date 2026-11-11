@@ -4,6 +4,13 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.28
+
+- Fix: the managed `approval` patch used an unquoted `!!js` ternary; YAML parsed
+  the `?` as a mapping and the approval plugin failed validation
+  (`$.policy expected "ask" | "never"`). The expression is now quoted, so
+  danger-full-access selects `never` and other modes select `ask` again.
+
 ## 0.1.27
 
 - **Full access by default.** New option `full_access` (default `true`) boots

@@ -68,7 +68,7 @@
 # dry-run confirmation-token protocol remains the independent gate.
 - id: approval
   config:
-    policy: !!js (process.env.DSH_PERMISSION_MODE ?? '') === 'danger-full-access' ? 'never' : 'ask'
+    policy: !!js "(process.env.DSH_PERMISSION_MODE ?? '') === 'danger-full-access' ? 'never' : 'ask'"
 
 # Restate the shipped permission presets and let the environment select the
 # default preset, so read_only / full_access options move both the sandbox and
