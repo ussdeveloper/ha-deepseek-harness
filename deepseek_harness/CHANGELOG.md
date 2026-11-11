@@ -4,6 +4,12 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.35
+
+- The host diagnostics self-test no longer blocks startup: the ingress shim and
+  DSH start first, then the host probe runs in the background with a 10 s
+  timeout. A slow Docker helper can no longer leave the sidebar on 502.
+
 ## 0.1.34
 
 - Host terminal fix: when `host_pid` hides the container id in `/proc/self/cgroup`

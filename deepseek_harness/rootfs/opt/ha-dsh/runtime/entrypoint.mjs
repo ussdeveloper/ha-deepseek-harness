@@ -307,7 +307,7 @@ async function logHostAccess() {
   }
   let hostExecResult = 'skipped'
   try {
-    const result = await hostExec('uname -s; id -u; ls -1 / | head -5', { timeoutMs: 20_000 })
+    const result = await hostExec('uname -s; id -u; ls -1 / | head -5', { timeoutMs: 10_000 })
     hostExecResult = `via=${result.via} exit=${result.exitCode} out=${JSON.stringify(result.stdout.trim().slice(0, 200))}`
   } catch (error) {
     hostExecResult = `failed: ${error instanceof Error ? error.message : String(error)}`
@@ -479,7 +479,6 @@ async function main() {
   await applyConfigurationApiKey()
   await ensureProtectionMode(options)
   await ensureIngressPanel()
-  await logHostAccess()
 
   await restoreManaged(MANAGED_AGENTS, join(DSH_HOME, 'AGENTS.md'))
 
@@ -553,6 +552,9 @@ async function main() {
     env: { DSH_HOME },
   })
   children.set('collector', collector)
+
+  // Diagnostics only: never block the UI on host probing.
+  void logHostAccess()
 
   startFirstRun()
 
