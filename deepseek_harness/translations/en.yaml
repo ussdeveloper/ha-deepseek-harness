@@ -1,0 +1,47 @@
+configuration:
+  deepseek_api_key:
+    name: "DeepSeek API key"
+    description: >-
+      Key from platform.deepseek.com. Stored by Home Assistant in the add-on
+      configuration (and included in backups). Leave empty to enter it later in
+      the DeepSeek Harness UI.
+  base_url:
+    name: "API base URL"
+    description: "OpenAI-compatible endpoint; change only for proxies or self-hosted gateways."
+  read_only:
+    name: "Read-only mode"
+    description: >-
+      Disables every tool that changes Home Assistant. Recommended while
+      evaluating the agent.
+  allow_restarts:
+    name: "Allow Home Assistant restarts"
+    description: >-
+      Allows the agent to restart Home Assistant Core after explicit
+      confirmation. Off by default.
+  allow_addon_management:
+    name: "Allow app (add-on) management"
+    description: >-
+      Allows install, update, rebuild and uninstall of apps after explicit
+      confirmation. Off by default.
+  monitor_enabled:
+    name: "Enable monitoring"
+    description: "Periodic health checks, backup-age checks and the daily digest."
+  notify_service:
+    name: "Notification service"
+    description: >-
+      Optional notify entity or action for alerts, e.g. notify.mobile_app_phone.
+      Empty means persistent notifications inside Home Assistant only.
+  backup_retention:
+    name: "Backups to keep"
+    description: "How many automatic backups the agent may keep (1-90)."
+  quiet_hours:
+    name: "Quiet hours"
+    description: >-
+      Optional HH:MM-HH:MM window when non-critical notifications are held,
+      e.g. 22:00-07:00.
+  public_url:
+    name: "Public Home Assistant URL"
+    description: >-
+      Optional. Set if you access Home Assistant through a fixed external URL
+      (e.g. Nabu Casa); used only for links the agent generates.
+

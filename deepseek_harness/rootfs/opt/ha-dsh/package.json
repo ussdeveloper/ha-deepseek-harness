@@ -1,0 +1,7 @@
+{
+  "name": "ha-deepseek-harness-addon-tools",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Add-on runtime, shared library and DSH plugin loaded from the image"
+}

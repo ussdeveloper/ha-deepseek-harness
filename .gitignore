@@ -1,0 +1,15 @@
+# Research checkout of upstream DeepSeek Harness (not part of this repo)
+/upstream-dsh/
+
+# Local experiments and caches
+/scratch/
+/.npm-cache/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# Test scratch directories
+tests/plugin/.tmp-state/
+tests/runtime/.tmp*/
+

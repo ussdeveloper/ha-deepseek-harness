@@ -1,0 +1,10 @@
+# Bundle patch layer for the Home Assistant tool plugin.
+#
+# Inserted plugin rows are anchored to this file's directory, so `./index.js`
+# resolves to the bundle's own entry module. The add-on image loads this file
+# with `--patch`; the plugin is dependency-free (relative imports into
+# /opt/ha-dsh/lib only) because a file loaded from an immutable image path
+# cannot resolve bare npm packages.
+- insert:
+    - id: ha-deepseek-harness
+      name: ./index.js
