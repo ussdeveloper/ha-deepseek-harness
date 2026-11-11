@@ -19,6 +19,7 @@ import { createWriteStream } from 'node:fs'
 import { copyFile, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 import { runFirstRun } from './first-run.mjs'
 import { VERSION } from '../lib/paths.js'
@@ -37,6 +38,7 @@ const SHIM = '/opt/ha-dsh/runtime/ingress-shim.mjs'
 const MANAGED_AGENTS = '/opt/ha-dsh/prompts/AGENTS.md'
 // The agent's working directory lives in the Home Assistant config folder so
 // the user can see its files and HA backups include them.
+const CONFIG_DIR = '/config'
 const WORKSPACE = '/config/deepseek-harness'
 
 /** Simple structured logger; Home Assistant captures stdout/stderr. */
@@ -87,9 +89,66 @@ function exportOptions(options) {
   process.env.DSH_PERMISSION_MODE = options.read_only === true ? 'read-only' : 'workspace-write'
 }
 
+/**
+ * Find a DeepSeek API key in the Home Assistant configuration file.
+ *
+ * Users often keep add-on settings next to their HA configuration, e.g.:
+ *
+ *   deepseek_harness:
+ *     api_key: sk-…
+ *
+ * Reading it at start (when neither the add-on option nor the environment
+ * provides a key) means a fresh install can talk to the model without copying
+ * the secret into the add-on options a second time.
+ * @param {string} text configuration.yaml contents
+ * @returns {string|undefined}
+ */
+export function extractApiKeyFromConfiguration(text) {
+  const lines = String(text).split(/\r?\n/)
+  let inBlock = false
+  let blockIndent = 0
+  for (const line of lines) {
+    if (!inBlock) {
+      if (/^deepseek_harness:\s*(?:#.*)?$/.test(line)) {
+        inBlock = true
+        blockIndent = 0
+      }
+      continue
+    }
+    if (line.trim() === '' || /^\s*#/.test(line)) continue
+    const indent = (line.match(/^\s*/) ?? [''])[0].length
+    if (indent === 0) break
+    if (blockIndent === 0) blockIndent = indent
+    if (indent < blockIndent) break
+    const match = /^\s*(?:api[_-]?key|deepseek_api_key|token)\s*:\s*(.+?)\s*$/.exec(line)
+    if (match !== null) {
+      const value = match[1].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '')
+      if (value !== '' && !/^(null|~)$/i.test(value)) return value
+    }
+  }
+  return undefined
+}
+
+/**
+ * Apply a key found in `/config/configuration.yaml` when no higher-precedence
+ * key is configured. The value is placed in the process environment only.
+ */
+async function applyConfigurationApiKey() {
+  if (typeof process.env.DEEPSEEK_API_KEY === 'string' && process.env.DEEPSEEK_API_KEY.trim() !== '') return false
+  try {
+    const text = await readFile(join(CONFIG_DIR, 'configuration.yaml'), 'utf8')
+    const key = extractApiKeyFromConfiguration(text)
+    if (key === undefined) return false
+    process.env.DEEPSEEK_API_KEY = key
+    log('INFO', 'using DeepSeek API key from /config/configuration.yaml')
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Create the persistent directory layout. */
-async function ensureDirectories() {
-  for (const directory of [
+async function ensureDirectories() {  for (const directory of [
     RUNTIME_DIR,
     DSH_HOME,
     join(DSH_HOME, 'skills'),
@@ -246,6 +305,7 @@ async function shutdown(reason, code = 0) {
 async function main() {
   const options = await readOptions()
   exportOptions(options)
+  await applyConfigurationApiKey()
   await ensureDirectories()
 
   await restoreManaged(MANAGED_AGENTS, join(DSH_HOME, 'AGENTS.md'))
@@ -272,13 +332,16 @@ async function main() {
   })
   children.set('shim', shim)
 
-  // One-time system recognition before the UI starts. It is deterministic and
-  // always writes a report; when an LLM key is configured it also creates the
-  // persisted first-run analysis session the UI opens by default.
-  try {
-    await runFirstRun()
-  } catch (error) {
-    log('WARN', `first-run recognition failed: ${error instanceof Error ? error.message : String(error)}`)
+  // One-time system recognition runs in the background after the UI is up:
+  // the deterministic report appears within seconds and the optional LLM
+  // assessment creates the first-run session without delaying installation or
+  // the first page load.
+  const startFirstRun = () => {
+    setTimeout(() => {
+      void runFirstRun().catch((error) => {
+        log('WARN', `first-run recognition failed: ${error instanceof Error ? error.message : String(error)}`)
+      })
+    }, 10_000)
   }
 
   const web = startChild(
@@ -317,6 +380,8 @@ async function main() {
     env: { DSH_HOME },
   })
   children.set('collector', collector)
+
+  startFirstRun()
 
   // DSH is the foreground process: when it exits the add-on stops and the
   // Supervisor decides whether to restart the container.
@@ -372,10 +437,13 @@ async function main() {
   logStream.write(`${new Date().toISOString()} [entrypoint] started\n`)
 }
 
-if (!existsSync('/opt/ha-dsh')) {
-  log('WARN', 'expected image tree /opt/ha-dsh is missing; running from a non-add-on environment')
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  if (!existsSync('/opt/ha-dsh')) {
+    log('WARN', 'expected image tree /opt/ha-dsh is missing; running from a non-add-on environment')
+  }
+
+  await main()
 }
 
-await main()
 
 

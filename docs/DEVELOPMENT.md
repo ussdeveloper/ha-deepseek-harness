@@ -113,3 +113,4 @@ public release, publish a multi-arch image to GHCR and add `image:` matching
 run, YAML/manifest check, Dockerfile build for amd64. Publishing images uses the
 Home Assistant builder actions described in `docs/research/ha-addon.md`.
 
+

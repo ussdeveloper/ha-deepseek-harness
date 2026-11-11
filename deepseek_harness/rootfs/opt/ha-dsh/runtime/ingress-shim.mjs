@@ -210,6 +210,32 @@ export function normalizePluginBundleUrl(path) {
 }
 
 /**
+ * A small self-refreshing page shown while DSH is still starting or its launch
+ * token is not available yet. It replaces DSH's raw
+ * "authentication required; reopen the URL printed by dsh web" page, which is
+ * confusing inside the Home Assistant panel.
+ * @param {import('node:http').ServerResponse} res
+ */
+function sendStartingPage(res) {
+  const body = [
+    '<!doctype html><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    '<title>DeepSeek Harness starting…</title>',
+    '<style>body{font:15px/1.5 system-ui,sans-serif;background:#0b1220;color:#e2e8f0;display:grid;place-items:center;height:100vh;margin:0}',
+    'main{max-width:32rem;padding:2rem;text-align:center}.muted{color:#94a3b8}</style>',
+    '<main><h1>DeepSeek Harness is starting…</h1>',
+    '<p class="muted">The agent is preparing its first-run system recognition. This page refreshes automatically.</p></main>',
+    '<script>setTimeout(function(){location.reload()},2500)</script>',
+  ].join('')
+  res.writeHead(503, {
+    'content-type': 'text/html; charset=utf-8',
+    'cache-control': 'no-store',
+    'retry-after': '2',
+  })
+  res.end(body)
+}
+
+/**
  * Proxy one HTTP request to the DSH web server.
  * @param {import('node:http').IncomingMessage} req
  * @param {import('node:http').ServerResponse} res
@@ -243,6 +269,9 @@ async function proxyRequest(req, res) {
     }
     if (token !== undefined) {
       target += `${target.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`
+    } else {
+      sendStartingPage(res)
+      return
     }
   }
 
@@ -265,6 +294,13 @@ async function proxyRequest(req, res) {
       }
 
       const contentType = String(upstreamRes.headers['content-type'] ?? '')
+      if (documentRequest && [401, 403].includes(upstreamRes.statusCode ?? 0)) {
+        // A stale or missing DSH session cookie: show the retry page instead of
+        // DSH's raw "authentication required" document.
+        upstreamRes.resume()
+        sendStartingPage(res)
+        return
+      }
       if (documentRequest && (upstreamRes.statusCode ?? 0) === 200 && contentType.includes('text/html')) {
         // The document is small; buffer it so the default-session script can be
         // injected and the content length corrected.
@@ -292,6 +328,10 @@ async function proxyRequest(req, res) {
 
   upstream.on('error', (error) => {
     process.stderr.write(`${new Date().toISOString()} [shim] upstream error: ${error.message}\n`)
+    if (documentRequest) {
+      if (!res.headersSent) sendStartingPage(res)
+      return
+    }
     if (!res.headersSent) res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' })
     res.end('DeepSeek Harness is starting; retry in a moment.')
   })

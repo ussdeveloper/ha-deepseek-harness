@@ -31,6 +31,9 @@ jobs:
       - name: Run ingress shim tests
         run: node tests/runtime/shim.test.mjs
 
+      - name: Run entrypoint helper tests
+        run: node tests/runtime/entrypoint.test.mjs
+
       - name: Syntax-check runtime modules
         run: |
           node --check deepseek_harness/rootfs/opt/ha-dsh/runtime/entrypoint.mjs
@@ -58,3 +61,4 @@ jobs:
           build-args: |
             BUILD_ARCH=amd64
             BUILD_VERSION=0.1.0
+
