@@ -16,7 +16,7 @@
 
 import { spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
-import { copyFile, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { appendFile, copyFile, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -43,7 +43,11 @@ const WORKSPACE = '/config/deepseek-harness'
 
 /** Simple structured logger; Home Assistant captures stdout/stderr. */
 function log(level, message) {
-  process.stdout.write(`${new Date().toISOString()} [entrypoint] ${level} ${message}\n`)
+  const line = `${new Date().toISOString()} [entrypoint] ${level} ${message}`
+  process.stdout.write(`${line}\n`)
+  // Mirror into the add-on log so the authenticated /__logs shim endpoint can
+  // expose startup problems through ingress.
+  appendFile(LOG_FILE, `${line}\n`).catch(() => {})
 }
 
 /** Read /data/options.json; an absent file is not an error (direct docker run). */

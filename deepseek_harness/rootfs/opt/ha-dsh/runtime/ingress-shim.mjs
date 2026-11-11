@@ -32,6 +32,27 @@ const BIND = process.env.DSH_INGRESS_BIND ?? '0.0.0.0'
 const TOKEN_FILE = process.env.DSH_TOKEN_FILE ?? '/data/runtime/dsh-token'
 const TRUSTED_AUTHORITY = 'dsh.local'
 const DEFAULT_SESSION_FILE = process.env.DSH_DEFAULT_SESSION_FILE ?? '/data/runtime/default-session.json'
+const ADDON_LOG_FILE = process.env.DSH_ADDON_LOG_FILE ?? '/data/dsh-home/addon.log'
+
+/** Strip credentials from log text before it is served over ingress. */
+function redactLog(text) {
+  return text
+    .replace(/[?&]token=[^\s&"']+/g, '?token=[redacted]')
+    .replace(/\bsk-[A-Za-z0-9_-]{8,}\b/g, 'sk-[redacted]')
+}
+
+/** Serve the add-on log tail for diagnostics (authenticated by HA ingress). */
+async function serveLogs(res) {
+  try {
+    const text = redactLog(await readFile(ADDON_LOG_FILE, 'utf8'))
+    const lines = text.split('\n')
+    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' })
+    res.end(lines.slice(-160).join('\n'))
+  } catch (error) {
+    res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' })
+    res.end(`no add-on log yet: ${error?.message ?? error}\n`)
+  }
+}
 
 /**
  * Inject the saved first-run session into the browser before the app boots.
@@ -254,6 +275,14 @@ async function proxyRequest(req, res) {
 
   const { path, prefix } = stripIngressPrefix(rawUrl, headerPrefix)
   let target = normalizePluginBundleUrl(path)
+
+  // Authenticated diagnostics: the Supervisor API serves add-on logs as
+  // text/plain, which the Home Assistant WebSocket bridge cannot return, so the
+  // shim exposes the log tail through the same ingress-authenticated origin.
+  if (target.split('?')[0] === '/__logs') {
+    await serveLogs(res)
+    return
+  }
 
   if (
     isDocumentRequest(req.method ?? 'GET', target) &&
