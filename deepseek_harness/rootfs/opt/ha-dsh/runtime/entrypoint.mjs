@@ -15,9 +15,9 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process'
-import { createWriteStream } from 'node:fs'
+import { createWriteStream, existsSync } from 'node:fs'
 import { appendFile, copyFile, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { hostExec } from '../lib/host-access.js'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -295,7 +295,7 @@ async function ensureProtectionMode(options) {
 }
 
 /** Log whether host-level access is actually available after the grants apply. */
-function logHostAccess() {
+async function logHostAccess() {
   const hostRoot = existsSync('/proc/1/root')
   const dockerSocket = ['/run/docker.sock', '/var/run/docker.sock'].find((path) => existsSync(path)) ?? 'none'
   let nsenter = 'missing'
@@ -305,25 +305,15 @@ function logHostAccess() {
   } catch {
     nsenter = 'error'
   }
-  let dockerApi = 'not-checked'
-  if (dockerSocket !== 'none') {
-    try {
-      const probe = spawnSync(
-        process.execPath,
-        [
-          '-e',
-          "const http=require('node:http');const r=http.request({socketPath:process.argv[1],path:'/version',method:'GET'},res=>{res.resume();process.exit(res.statusCode===200?0:2)});r.on('error',()=>process.exit(3));r.end()",
-          dockerSocket,
-        ],
-        { timeout: 5_000, stdio: 'ignore' },
-      )
-      dockerApi = probe.status === 0 ? 'ok' : `status ${probe.status ?? 'error'}`
-    } catch {
-      dockerApi = 'error'
-    }
+  let hostExecResult = 'skipped'
+  try {
+    const result = await hostExec('uname -s; id -u; ls -1 / | head -5', { timeoutMs: 20_000 })
+    hostExecResult = `via=${result.via} exit=${result.exitCode} out=${JSON.stringify(result.stdout.trim().slice(0, 200))}`
+  } catch (error) {
+    hostExecResult = `failed: ${error instanceof Error ? error.message : String(error)}`
   }
   log(
-    `host access: hostRoot=${hostRoot ? 'ok' : 'no'} dockerSocket=${dockerSocket} dockerApi=${dockerApi} nsenter=${nsenter}`,
+    `host access: hostRoot=${hostRoot ? 'ok' : 'no'} dockerSocket=${dockerSocket} nsenter=${nsenter} hostExec(${hostExecResult})`,
   )
 }
 
@@ -489,7 +479,7 @@ async function main() {
   await applyConfigurationApiKey()
   await ensureProtectionMode(options)
   await ensureIngressPanel()
-  logHostAccess()
+  await logHostAccess()
 
   await restoreManaged(MANAGED_AGENTS, join(DSH_HOME, 'AGENTS.md'))
 

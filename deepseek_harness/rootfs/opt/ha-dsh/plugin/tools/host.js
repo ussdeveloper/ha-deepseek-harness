@@ -13,8 +13,8 @@
  * @module tools/host
  */
 
-import { spawn } from 'node:child_process'
 import { sup, supOk } from '../../lib/supervisor.js'
+import { hostExec } from '../../lib/host-access.js'
 import { consumeApproval, needsApproval } from '../../lib/safety.js'
 import { ok, fail, toErrorResult, renderJson, truncate } from '../../lib/result.js'
 import { getOptions } from '../../lib/paths.js'
@@ -280,46 +280,26 @@ export const tools = [
       } catch (error) {
         return toErrorResult(error, [])
       }
-      return await new Promise((resolve) => {
-        const child = spawn('nsenter', ['-t', '1', '-m', '-u', '-i', '-n', '-p', '--', 'sh', '-lc', command], {
-          cwd: '/',
-          env: process.env,
-          stdio: ['ignore', 'pipe', 'pipe'],
-        })
-        let stdout = ''
-        let stderr = ''
-        let truncated = false
-        const collect = (chunk, current, limit) => {
-          const next = current + chunk.toString('utf8')
-          if (next.length > limit) {
-            truncated = true
-            return next.slice(0, limit)
-          }
-          return next
-        }
-        child.stdout.on('data', (chunk) => { stdout = collect(chunk, stdout, 60_000) })
-        child.stderr.on('data', (chunk) => { stderr = collect(chunk, stderr, 20_000) })
-        const timer = setTimeout(() => {
-          child.kill('SIGTERM')
-          setTimeout(() => child.kill('SIGKILL'), 2_000)
-        }, timeoutSeconds * 1_000)
-        child.on('error', (error) => {
-          clearTimeout(timer)
-          resolve(fail('UNSUPPORTED', `Cannot start host shell: ${error.message}`, {
-            hint: 'host_pid/full_access are only granted when protection mode is off. Restart the add-on after toggling protection mode.',
-          }))
-        })
-        child.on('close', (code, signal) => {
-          clearTimeout(timer)
-          resolve(
-            ok(
-              code === 0 ? 'Host command finished.' : `Host command exited with code ${code ?? 'null'}${signal ? ` (${signal})` : ''}.`,
-              { command, exit_code: code, signal, stdout, stderr, via: 'nsenter -t 1' },
-              { source: ['nsenter -t 1 -m -u -i -n -p'], truncated },
-            ),
-          )
-        })
-      })
+      try {
+        const result = await hostExec(command, { timeoutMs: timeoutSeconds * 1_000 })
+        const stdout = truncate(result.stdout, 60_000)
+        const stderr = truncate(result.stderr, 20_000)
+        return ok(
+          result.exitCode === 0
+            ? 'Host command finished.'
+            : `Host command exited with code ${result.exitCode ?? 'null'}.`,
+          {
+            command,
+            exit_code: result.exitCode,
+            stdout: stdout.text,
+            stderr: stderr.text,
+            via: result.via,
+          },
+          { source: [result.via], truncated: stdout.truncated || stderr.truncated },
+        )
+      } catch (error) {
+        return toErrorResult(error, ['hostExec'])
+      }
     },
   },
 ]

@@ -4,6 +4,16 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.33
+
+- Host terminal now works even when the container cannot use `nsenter`:
+  `hostExec` falls back to the Docker API, starting a short-lived privileged
+  helper container from the add-on image with the host root mounted at `/host`
+  and running `chroot /host /bin/sh -lc <command>`. The startup self-test runs
+  `uname/id/ls` through the same path and logs the result.
+- The helper is auto-removed and the command is bounded by the same timeout as
+  the tool; Docker socket access was verified (`dockerApi=ok`).
+
 ## 0.1.32
 
 - Host terminal fix: `apparmor: false` is now declared, because the default
