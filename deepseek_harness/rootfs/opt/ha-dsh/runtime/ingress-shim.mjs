@@ -188,6 +188,9 @@ export function upstreamHeaders(headers, options = {}) {
     const lower = key.toLowerCase()
     if (lower === 'host' || lower === 'origin' || lower === 'referer') continue
     if (lower === 'x-ingress-path') continue
+    // The document is buffered for cookie/launch-token injection, so never ask
+    // DSH for a compressed body; identity keeps the HTML plain text.
+    if (lower === 'accept-encoding') continue
     if (!options.keepUpgrade && (lower === 'connection' || lower === 'upgrade')) continue
     out[lower] = value
   }
@@ -324,10 +327,22 @@ async function proxyRequest(req, res) {
 
       const contentType = String(upstreamRes.headers['content-type'] ?? '')
       if (documentRequest && [401, 403].includes(upstreamRes.statusCode ?? 0)) {
-        // A stale or missing DSH session cookie: show the retry page instead of
-        // DSH's raw "authentication required" document.
+        // A stale DSH cookie makes DSH answer 401; a fresh launch token replaces
+        // it. Redirect the browser through the token instead of looping on the
+        // starting page.
         upstreamRes.resume()
-        sendStartingPage(res)
+        void (async () => {
+          const token = await launchToken()
+          if (token === undefined) {
+            sendStartingPage(res)
+            return
+          }
+          res.writeHead(303, {
+            location: `./?token=${encodeURIComponent(token)}`,
+            'cache-control': 'no-store',
+          })
+          res.end()
+        })()
         return
       }
       if (documentRequest && (upstreamRes.statusCode ?? 0) === 200 && contentType.includes('text/html')) {
@@ -341,8 +356,14 @@ async function proxyRequest(req, res) {
             let body = Buffer.concat(chunks).toString('utf8')
             if (sessionId !== undefined) body = injectDefaultSession(body, sessionId)
             const encoded = Buffer.from(body, 'utf8')
+            // aiohttp (HA Core and Supervisor) rejects a response that carries
+            // both Content-Length and Transfer-Encoding, which DSH's chunked
+            // response would otherwise leave in place.
             delete headers['content-length']
+            delete headers['transfer-encoding']
+            delete headers['content-encoding']
             headers['content-length'] = String(encoded.byteLength)
+            headers['cache-control'] = 'no-store'
             res.writeHead(upstreamRes.statusCode ?? 200, headers)
             res.end(encoded)
           })()
