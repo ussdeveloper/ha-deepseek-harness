@@ -106,3 +106,33 @@ test('upstreamHeaders keeps WebSocket upgrade headers when asked', () => {
   assert.equal(headers.upgrade, 'websocket')
   assert.equal(headers.origin, undefined)
 })
+
+test('normalizePluginBundleUrl restores the double-question bundle key', () => {
+  assert.equal(
+    shim.normalizePluginBundleUrl(
+      '/plugins/?%3F%40deepseek-ai%2Fdsh-client-modules%2Fclient.js=&rev=1b6d0c9f5ce1',
+    ),
+    '/plugins/??@deepseek-ai/dsh-client-modules/client.js&rev=1b6d0c9f5ce1',
+  )
+})
+
+test('normalizePluginBundleUrl restores multi-entry bundle keys', () => {
+  assert.equal(
+    shim.normalizePluginBundleUrl(
+      '/plugins/?%3F%40deepseek-ai%2Fa%2Fclient.js%2C%40deepseek-ai%2Fb%2Fclient.js=&rev=abc',
+    ),
+    '/plugins/??@deepseek-ai/a/client.js,@deepseek-ai/b/client.js&rev=abc',
+  )
+})
+
+test('normalizePluginBundleUrl leaves other URLs untouched', () => {
+  for (const url of [
+    '/plugins/',
+    '/plugins/@deepseek-ai/dsh-client-modules/client.js?rev=abc',
+    '/plugins/??@deepseek-ai/dsh-client-modules/client.js&rev=abc',
+    '/assets/index.js',
+    '/',
+  ]) {
+    assert.equal(shim.normalizePluginBundleUrl(url), url, url)
+  }
+})

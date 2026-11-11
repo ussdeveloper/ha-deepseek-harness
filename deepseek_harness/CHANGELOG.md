@@ -4,6 +4,14 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.2
+
+- Fix: DSH client plugin bundles now load through Home Assistant ingress. HA
+  Core/Supervisor re-encodes the `plugins/??<id>/client.js&rev=…` URL into
+  `/plugins/?%3F…=&rev=…`, which DSH does not match (404) — the shim restores
+  the exact bundle key. Without this the UI showed "Failed to load plugins /
+  HTML did not preload @deepseek-ai/dsh-client-modules/client.js".
+
 ## 0.1.1
 
 - Fix: `quiet_hours` schema now accepts an empty value as well as `HH:MM-HH:MM`

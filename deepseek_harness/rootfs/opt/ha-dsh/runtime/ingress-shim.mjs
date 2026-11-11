@@ -140,6 +140,37 @@ export function upstreamHeaders(headers, options = {}) {
 }
 
 /**
+ * Restore the plugin-bundle URL through Home Assistant's proxies.
+ *
+ * DSH advertises bundles as `plugins/??<ids>/client.js&rev=…`: the first `?`
+ * starts the query and the second is part of the exact resource key the module
+ * registry matches. Home Assistant Core parses that query into a parameter
+ * (`?@…` with an empty value) and re-encodes it, so the add-on receives
+ * `/plugins/?%3F%40…=&rev=…` and DSH answers 404. Rebuild the exact key.
+ *
+ * @param {string} path stripped request path (with query string)
+ * @returns {string} path DSH matches, or the input unchanged
+ */
+export function normalizePluginBundleUrl(path) {
+  const queryIndex = path.indexOf('?')
+  if (queryIndex === -1) return path
+  const pathname = path.slice(0, queryIndex)
+  if (pathname !== '/plugins/') return path
+  const search = path.slice(queryIndex)
+  if (!/^\?%3F/i.test(search)) return path
+  try {
+    let decoded = decodeURIComponent(search.slice(1))
+    if (!decoded.startsWith('?')) return path
+    // aiohttp serialises the empty value of the `?ids` key as `…=&rev`, while
+    // the advertised key has no `=`.
+    decoded = decoded.replace(/=&/g, '&').replace(/=$/, '')
+    return `${pathname}?${decoded}`
+  } catch {
+    return path
+  }
+}
+
+/**
  * Proxy one HTTP request to the DSH web server.
  * @param {import('node:http').IncomingMessage} req
  * @param {import('node:http').ServerResponse} res
@@ -157,7 +188,7 @@ async function proxyRequest(req, res) {
   }
 
   const { path, prefix } = stripIngressPrefix(rawUrl, headerPrefix)
-  let target = path
+  let target = normalizePluginBundleUrl(path)
 
   if (
     isDocumentRequest(req.method ?? 'GET', target) &&
