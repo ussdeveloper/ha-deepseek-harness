@@ -125,12 +125,13 @@ test('normalizePluginBundleUrl restores multi-entry bundle keys', () => {
   )
 })
 
-test('injectDefaultSession seeds the saved session only once per browser', () => {
+test('injectDefaultSession opens the first-run session once per browser', () => {
   const html = '<html><head></head><body>app</body></html>'
   const injected = shim.injectDefaultSession(html, 'session-1')
   assert.match(injected, /dsh\.sessions\.current/)
-  assert.match(injected, /\\"sessionId\\":\\"session-1\\"/)
-  assert.match(injected, /if\(!localStorage\.getItem\(key\)\)/)
+  assert.match(injected, /dsh\.first-run-session/)
+  assert.match(injected, /"session-1"/)
+  assert.match(injected, /getItem\(seen\)!==id/)
   assert.ok(injected.indexOf('dsh.sessions.current') < injected.indexOf('</head>'))
   assert.equal(shim.injectDefaultSession(html, ''), html)
 })

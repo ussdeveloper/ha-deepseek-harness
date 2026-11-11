@@ -4,6 +4,11 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.7
+
+- The first-run analysis session now opens once per browser even when that
+  browser already has a saved DSH session selection (marked with
+  `dsh.first-run-session`), instead of only in a fresh browser profile.
 ## 0.1.6
 
 - First-run recognition: on the first start the add-on deterministically
@@ -75,3 +80,5 @@ file's top version changes.
 - Local knowledge cache for Home Assistant releases/breaking changes (fetched
   locally, no model tokens).
 - Add-on builder: scaffold, validate, build and debug local apps in `/addons`.
+
+

@@ -37,17 +37,18 @@ const DEFAULT_SESSION_FILE = process.env.DSH_DEFAULT_SESSION_FILE ?? '/data/runt
  * Inject the saved first-run session into the browser before the app boots.
  *
  * DSH persists the active session selection in `localStorage` under
- * `dsh.sessions.current`. Setting it only when the browser has no selection
- * makes the first-run analysis session the default view without overriding a
- * user's later choice.
+ * `dsh.sessions.current`. The first-run session is opened once per browser even
+ * if a selection already exists (marked in `dsh.first-run-session`), so an
+ * existing browser profile still lands on the analysis; later user choices are
+ * never overridden.
  * @param {string} html
  * @param {string} sessionId
  * @returns {string}
  */
 export function injectDefaultSession(html, sessionId) {
   if (typeof sessionId !== 'string' || sessionId === '') return html
-  const value = JSON.stringify(JSON.stringify({ sessionId }))
-  const script = `<script>(function(){try{var key="dsh.sessions.current";if(!localStorage.getItem(key)){localStorage.setItem(key,${value})}}catch(error){}})()</script>`
+  const value = JSON.stringify(sessionId)
+  const script = `<script>(function(){try{var key="dsh.sessions.current",seen="dsh.first-run-session",id=${value};if(localStorage.getItem(seen)!==id){localStorage.setItem(key,JSON.stringify({sessionId:id}));localStorage.setItem(seen,id)}}catch(error){}})()</script>`
   return html.includes('</head>') ? html.replace('</head>', `${script}</head>`) : `${script}${html}`
 }
 
