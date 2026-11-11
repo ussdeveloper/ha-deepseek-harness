@@ -65,6 +65,26 @@ if (!existsSync(configPath)) {
   if (config.has('host_network') && config.get('host_network') !== 'false') error('config.yaml: host_network must stay disabled')
   if (config.has('privileged') && config.get('privileged') !== 'false') error('config.yaml: privileged must stay disabled')
   if (!/^"?0\.\d+\.\d+"?$/.test(config.get('version') ?? '')) warn('config.yaml: version should look like 0.1.0')
+
+  // A released version must have a matching top changelog entry; the Home
+  // Assistant update dialog reads CHANGELOG.md from the repository checkout.
+  try {
+    const changelog = await readFile(join(ADDON, 'CHANGELOG.md'), 'utf8')
+    const declaredVersion = (config.get('version') ?? '').replaceAll('"', '')
+    const topHeading = /^##\s+(\d+\.\d+\.\d+)/m.exec(changelog)?.[1]
+    if (topHeading === undefined) {
+      error('CHANGELOG.md: no "## x.y.z" version heading found')
+    } else if (topHeading !== declaredVersion) {
+      error(
+        `CHANGELOG.md: top entry is ${topHeading} but config.yaml version is ${declaredVersion} ` +
+          '(bump both together; the changelog is what the add-on store shows)',
+      )
+    } else {
+      console.log(`changelog: ${topHeading} matches config.yaml`)
+    }
+  } catch (changelogError) {
+    error(`CHANGELOG.md: ${changelogError instanceof Error ? changelogError.message : changelogError}`)
+  }
 }
 
 for (const file of [

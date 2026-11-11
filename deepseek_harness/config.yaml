@@ -1,5 +1,5 @@
 name: "DeepSeek Harness"
-version: "0.1.24"
+version: "0.1.25"
 slug: "deepseek_harness"
 description: "DeepSeek Harness agent for Home Assistant: configure, monitor, maintain and extend your smart home safely."
 url: "https://github.com/ussdeveloper/ha-deepseek-harness"
@@ -75,6 +75,7 @@ backup_exclude:
   - "*.log"
   - "tmp/*"
 timeout: 30
+
 
 
 
