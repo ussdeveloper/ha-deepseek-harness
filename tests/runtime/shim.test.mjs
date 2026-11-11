@@ -125,6 +125,15 @@ test('normalizePluginBundleUrl restores multi-entry bundle keys', () => {
   )
 })
 
+test('normalizePluginBundleUrl strips the injected empty-value equals sign', () => {
+  // Home Assistant keeps the bare `??` form but serialises the empty value of
+  // the ids parameter, producing `...client.js=&rev=...`.
+  assert.equal(
+    shim.normalizePluginBundleUrl('/plugins/??@deepseek-ai/dsh-client-modules/client.js=&rev=da3d2b3bebd0'),
+    '/plugins/??@deepseek-ai/dsh-client-modules/client.js&rev=da3d2b3bebd0',
+  )
+})
+
 test('normalizePluginBundleUrl leaves other URLs untouched', () => {
   for (const url of [
     '/plugins/',

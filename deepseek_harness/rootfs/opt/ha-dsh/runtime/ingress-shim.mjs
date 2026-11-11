@@ -157,12 +157,16 @@ export function normalizePluginBundleUrl(path) {
   const pathname = path.slice(0, queryIndex)
   if (pathname !== '/plugins/') return path
   const search = path.slice(queryIndex)
+  // Home Assistant keeps the bare `??` form but serialises the empty value of
+  // the `?<ids>` parameter as `…client.js=&rev=…`; DSH's key has no `=`.
+  if (search.startsWith('??')) {
+    return `${pathname}${search.replace(/=&/g, '&').replace(/=$/, '')}`
+  }
+  // Some proxy versions percent-encode the leading `?` of the same parameter.
   if (!/^\?%3F/i.test(search)) return path
   try {
     let decoded = decodeURIComponent(search.slice(1))
     if (!decoded.startsWith('?')) return path
-    // aiohttp serialises the empty value of the `?ids` key as `…=&rev`, while
-    // the advertised key has no `=`.
     decoded = decoded.replace(/=&/g, '&').replace(/=$/, '')
     return `${pathname}?${decoded}`
   } catch {
@@ -189,24 +193,6 @@ async function proxyRequest(req, res) {
 
   const { path, prefix } = stripIngressPrefix(rawUrl, headerPrefix)
   let target = normalizePluginBundleUrl(path)
-
-  // Temporary diagnostics: `curl -H 'x-dsh-debug: 1'` returns the exact URL
-  // this shim received after Home Assistant's proxies.
-  if (req.headers['x-dsh-debug'] === '1') {
-    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
-    res.end(
-      JSON.stringify({
-        url: rawUrl,
-        ingress_path: req.headers['x-ingress-path'] ?? null,
-        prefix,
-        path,
-        target,
-        host: req.headers.host ?? null,
-        origin: req.headers.origin ?? null,
-      }),
-    )
-    return
-  }
 
   if (
     isDocumentRequest(req.method ?? 'GET', target) &&
