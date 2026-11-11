@@ -1,5 +1,5 @@
 name: "DeepSeek Harness"
-version: "0.1.28"
+version: "0.1.29"
 slug: "deepseek_harness"
 description: "DeepSeek Harness agent for Home Assistant: configure, monitor, maintain and extend your smart home safely."
 url: "https://github.com/ussdeveloper/ha-deepseek-harness"
@@ -46,6 +46,7 @@ options:
   full_access: true
   allow_restarts: false
   allow_addon_management: false
+  allow_host_management: true
   monitor_enabled: true
   first_run_analysis: true
   notify_service: ""
@@ -60,6 +61,7 @@ schema:
   full_access: "bool"
   allow_restarts: "bool"
   allow_addon_management: "bool"
+  allow_host_management: "bool"
   monitor_enabled: "bool"
   first_run_analysis: "bool"
   notify_service: "str?"
@@ -77,6 +79,7 @@ backup_exclude:
   - "*.log"
   - "tmp/*"
 timeout: 30
+
 
 
 

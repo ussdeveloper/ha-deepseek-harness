@@ -30,6 +30,12 @@ configuration:
     description: >-
       Allows install, update, rebuild and uninstall of apps after explicit
       confirmation. Off by default.
+  allow_host_management:
+    name: "Allow host management"
+    description: >-
+      Allows host reboot/shutdown, OS updates and reading host logs/network
+      through the Supervisor (manager role). Destructive host actions still
+      require explicit confirmation tokens. On by default.
   monitor_enabled:
     name: "Enable monitoring"
     description: "Periodic health checks, backup-age checks and the daily digest."

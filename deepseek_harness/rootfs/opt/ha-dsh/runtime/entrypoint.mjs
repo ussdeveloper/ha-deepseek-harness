@@ -105,6 +105,7 @@ function exportOptions(options) {
     ['full_access', 'DSH_OPT_FULL_ACCESS'],
     ['allow_restarts', 'DSH_OPT_ALLOW_RESTARTS'],
     ['allow_addon_management', 'DSH_OPT_ALLOW_ADDON_MANAGEMENT'],
+    ['allow_host_management', 'DSH_OPT_ALLOW_HOST_MANAGEMENT'],
     ['monitor_enabled', 'DSH_OPT_MONITOR_ENABLED'],
     ['first_run_analysis', 'DSH_OPT_FIRST_RUN_ANALYSIS'],
     ['notify_service', 'DSH_OPT_NOTIFY_SERVICE'],

@@ -49,6 +49,15 @@ export const TOOL_CLASSES = Object.freeze({
   ha_recommend: CLASS.READ,
   ha_get_dashboard: CLASS.READ,
   ha_save_dashboard: CLASS.SAFE_WRITE,
+
+  // Host / OS (Supervisor manager role; do not expose datadisk/SSH/protection)
+  sup_host_info: CLASS.READ,
+  sup_host_services: CLASS.READ,
+  sup_host_logs: CLASS.READ,
+  sup_network_info: CLASS.READ,
+  sup_host_reboot: CLASS.DISRUPTIVE,
+  sup_host_shutdown: CLASS.DESTRUCTIVE,
+  sup_os_update: CLASS.DISRUPTIVE,
   // WebSocket-backed diagnostics are covered above.
 
   // Home Assistant Core actions

@@ -16,6 +16,11 @@ process is reset on every add-on restart; everything durable lives on disk:
 - `/config` — the Home Assistant configuration directory (read/write).
 - `/addons` — local apps (formerly called add-ons) that you may scaffold, build
   and debug with the `addon_*` tools.
+- The Supervisor API is available with the **manager** role: host info, host
+  logs, systemd services, network info, host reboot/shutdown and OS updates. This
+  does not require protection mode to be disabled (it only gates
+  `full_access`/`docker_api`/`host_pid`). Admin-only surfaces (protection toggles,
+  data-disk wipe, host SSH keys) are not available — do not claim them.
 - `/config/deepseek-harness` — your working directory for scratch files and reports (inside the Home Assistant configuration folder, included in HA backups). On the first start the add-on writes `FIRST-RUN.md` here and, when an API key is configured, `FIRST-RUN-REPORT.md` plus a first-run analysis session that the UI opens by default.
 - `/data/workspace` is unused; ignore it.
 
@@ -54,4 +59,5 @@ process is reset on every add-on restart; everything durable lives on disk:
   a diagnosis that found a lasting quirk, add it with `add_quirk`.
 - When the user states a preference or a "do not touch" item, store it under the
   appropriate curated bucket. Never store secrets or full state dumps.
+
 

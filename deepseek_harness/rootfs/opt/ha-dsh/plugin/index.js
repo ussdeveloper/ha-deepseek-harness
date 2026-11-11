@@ -27,6 +27,7 @@ import * as knowledgeModule from './tools/knowledge.js'
 import * as builderModule from './tools/builder.js'
 import * as notifyModule from './tools/notify.js'
 import * as extrasModule from './tools/extras.js'
+import * as hostModule from './tools/host.js'
 
 /** Stable Cordis plugin name. */
 export const name = 'ha-deepseek-harness'
@@ -45,6 +46,7 @@ export const toolModules = Object.freeze({
   builder: builderModule,
   notify: notifyModule,
   extras: extrasModule,
+  host: hostModule,
 })
 
 /**

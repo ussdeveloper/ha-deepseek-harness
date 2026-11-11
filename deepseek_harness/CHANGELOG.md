@@ -4,6 +4,21 @@ All notable changes to the DeepSeek Harness add-on are documented here. The
 version matches `config.yaml`; Home Assistant only offers an update when this
 file's top version changes.
 
+## 0.1.29
+
+- Host management: new tools `sup_host_info`, `sup_host_services`,
+  `sup_host_logs`, `sup_network_info`, `sup_host_reboot`, `sup_host_shutdown`
+  and `sup_os_update`, backed by the Supervisor `manager` role (which the docs
+  list as sufficient for host and OS endpoints). Destructive host actions are
+  gated by the new `allow_host_management` option (default on) and the
+  confirmation-token flow.
+- The system-prompt operating context now states explicitly that the agent runs
+  on Home Assistant OS and can manage the host, that **protection mode does not
+  need to be disabled** for this (it only gates full_access/docker_api/host_pid),
+  and which admin-only surfaces it must not claim.
+- Nothing here uses `hassio_role: admin`, the Docker socket, host networking or
+  privileged capabilities.
+
 ## 0.1.28
 
 - Fix: the managed `approval` patch used an unquoted `!!js` ternary; YAML parsed
@@ -229,4 +244,5 @@ file's top version changes.
 - Local knowledge cache for Home Assistant releases/breaking changes (fetched
   locally, no model tokens).
 - Add-on builder: scaffold, validate, build and debug local apps in `/addons`.
+
 
