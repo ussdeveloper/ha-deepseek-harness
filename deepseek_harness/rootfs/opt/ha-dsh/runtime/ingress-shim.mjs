@@ -22,7 +22,7 @@
 
 import { createServer, request as httpRequest } from 'node:http'
 import { connect as netConnect } from 'node:net'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 
 const WEB_HOST = '127.0.0.1'
@@ -39,6 +39,37 @@ function redactLog(text) {
   return text
     .replace(/[?&]token=[^\s&"']+/g, '?token=[redacted]')
     .replace(/\bsk-[A-Za-z0-9_-]{8,}\b/g, 'sk-[redacted]')
+}
+
+/** Serve mount/configuration diagnostics (no secrets). */
+async function serveStatus(res) {
+  const report = {}
+  for (const dir of ['/config', '/homeassistant', '/addons', '/share', '/ssl']) {
+    try {
+      const entries = await readdir(dir, { withFileTypes: true })
+      report[dir] = {
+        exists: true,
+        entries: entries.length,
+        names: entries.slice(0, 25).map((entry) => entry.name),
+      }
+    } catch (error) {
+      report[dir] = { exists: false, error: String(error?.code ?? error) }
+    }
+  }
+  for (const candidate of ['/config/configuration.yaml', '/homeassistant/configuration.yaml']) {
+    try {
+      const text = await readFile(candidate, 'utf8')
+      report[candidate] = {
+        exists: true,
+        bytes: text.length,
+        hasDeepseekBlock: /^deepseek_harness:\s*$/m.test(text),
+      }
+    } catch (error) {
+      report[candidate] = { exists: false, error: String(error?.code ?? error) }
+    }
+  }
+  res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
+  res.end(`${JSON.stringify(report, null, 2)}\n`)
 }
 
 /** Serve the add-on log tail for diagnostics (authenticated by HA ingress). */
@@ -284,6 +315,10 @@ async function proxyRequest(req, res) {
   // shim exposes the log tail through the same ingress-authenticated origin.
   if (target.split('?')[0] === '/__logs') {
     await serveLogs(res)
+    return
+  }
+  if (target.split('?')[0] === '/__status') {
+    await serveStatus(res)
     return
   }
 
